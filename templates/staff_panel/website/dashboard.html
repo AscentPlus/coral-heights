@@ -1,0 +1,95 @@
+{% extends 'staff_panel/base.html' %}
+
+{% block title %}Website Content Management — Staff Portal{% endblock %}
+{% block header_title %}Website Content Management{% endblock %}
+
+{% block content %}
+<div class="space-y-8 max-w-7xl mx-auto">
+
+  <!-- Header Banner -->
+  <div class="bg-gradient-to-r from-teal-950 via-teal-900 to-teal-950 rounded-2xl p-6 sm:p-8 text-white shadow-md relative overflow-hidden">
+    <div class="relative z-10 max-w-2xl">      
+      <h3 class="font-serif font-bold text-2xl sm:text-3xl text-white mb-2">Website Management</h3>
+      <p class="text-slate-300 text-sm leading-relaxed">
+        Update rooms &amp; suites, facilities, nearby tourist attractions, and hotel contact details.
+      </p>
+    </div>
+    <!-- Decorative background icon -->
+    <svg class="absolute -right-8 -bottom-8 w-64 h-64 text-white/5 pointer-events-none" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+  </div>
+
+  <!-- 4 Management Navigation Cards Grid -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+    <!-- 1. Room Types -->
+    <a href="{% url 'staff_panel:website_room_types' %}" class="group bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md hover:border-teal-700/50 transition-all flex flex-col justify-between space-y-4">
+      <div class="space-y-3">
+        <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-900 group-hover:bg-teal-900 group-hover:text-gold transition-colors flex items-center justify-center">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0h4m-4 0H7"/></svg>
+        </div>
+        <h4 class="font-serif font-bold text-xl text-teal-950 group-hover:text-teal-700 transition-colors">Room Categories</h4>
+        <p class="text-xs text-slate-500 leading-relaxed">
+          Manage room titles, descriptions, tariff, occupancy limits and photos.
+        </p>
+      </div>
+      <div class="pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-teal-900">
+        <span>{{ room_types_count }} Categories</span>
+        <span class="group-hover:translate-x-1 transition-transform">Manage &rarr;</span>
+      </div>
+    </a>
+
+    <!-- 2. Hotel Facilities -->
+    <a href="{% url 'staff_panel:website_facilities' %}" class="group bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md hover:border-teal-700/50 transition-all flex flex-col justify-between space-y-4">
+      <div class="space-y-3">
+        <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-800 group-hover:bg-teal-900 group-hover:text-gold transition-colors flex items-center justify-center">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <h4 class="font-serif font-bold text-xl text-teal-950 group-hover:text-teal-700 transition-colors">Hotel Facilities</h4>
+        <p class="text-xs text-slate-500 leading-relaxed">
+          Manage hotel facilities and features displayed on the homepage (Wi-Fi, parking, restaurant, etc.).
+        </p>
+      </div>
+      <div class="pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-teal-900">
+        <span>{{ facilities_count }} Facilities</span>
+        <span class="group-hover:translate-x-1 transition-transform">Manage &rarr;</span>
+      </div>
+    </a>
+
+    <!-- 3. Nearby Attractions -->
+    <a href="{% url 'staff_panel:website_attractions' %}" class="group bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md hover:border-teal-700/50 transition-all flex flex-col justify-between space-y-4">
+      <div class="space-y-3">
+        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-800 group-hover:bg-teal-900 group-hover:text-gold transition-colors flex items-center justify-center">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+        <h4 class="font-serif font-bold text-xl text-teal-950 group-hover:text-teal-700 transition-colors">Nearby Attractions</h4>
+        <p class="text-xs text-slate-500 leading-relaxed">
+          Manage local tourist spots, distance labels, descriptions, and location photography.
+        </p>
+      </div>
+      <div class="pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-teal-900">
+        <span>{{ attractions_count }} Places</span>
+        <span class="group-hover:translate-x-1 transition-transform">Manage &rarr;</span>
+      </div>
+    </a>
+
+    <!-- 4. Contact & Social -->
+    <a href="{% url 'staff_panel:website_contact' %}" class="group bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md hover:border-teal-700/50 transition-all flex flex-col justify-between space-y-4">
+      <div class="space-y-3">
+        <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-800 group-hover:bg-teal-900 group-hover:text-gold transition-colors flex items-center justify-center">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+        </div>
+        <h4 class="font-serif font-bold text-xl text-teal-950 group-hover:text-teal-700 transition-colors">Contact &amp; Social</h4>
+        <p class="text-xs text-slate-500 leading-relaxed">
+          Update address, phone numbers, email and social links.
+        </p>
+      </div>
+      <div class="pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-teal-900">
+        <span>Site-wide Settings</span>
+        <span class="group-hover:translate-x-1 transition-transform">Edit &rarr;</span>
+      </div>
+    </a>
+
+  </div>
+
+</div>
+{% endblock %}

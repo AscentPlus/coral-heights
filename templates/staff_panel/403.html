@@ -1,0 +1,30 @@
+{% extends 'staff_panel/base.html' %}
+
+{% block title %}Access Denied — Staff Portal{% endblock %}
+{% block header_title %}Access Restricted{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-12 text-center space-y-6">
+  <div class="w-20 h-20 bg-rose-50 border border-rose-200 text-rose-600 rounded-3xl flex items-center justify-center mx-auto shadow-sm">
+    <svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    </svg>
+  </div>
+
+  <div>
+    <span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-rose-100 text-rose-800 border border-rose-200 rounded-full text-xs font-bold uppercase tracking-wider mb-3 shadow-sm">
+      403 Forbidden
+    </span>
+    <h1 class="font-serif text-3xl font-bold text-slate-900">Access Restricted</h1>
+    <p class="text-slate-600 text-sm mt-3 max-w-md mx-auto leading-relaxed">
+      {{ message|default:"You do not have permission to view this section of the staff portal." }}
+    </p>
+  </div>
+
+  <div class="pt-4">
+    <a href="{% url 'staff_panel:dashboard' %}" class="inline-flex items-center gap-2 px-6 py-3.5 bg-gold hover:bg-gold-light text-teal-950 font-bold text-sm rounded-xl transition-all shadow-md">
+      <span>← Return to Dashboard</span>
+    </a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,8 @@
+Django>=5.0,<6.0
+psycopg2-binary
+django-environ
+django-csp
+whitenoise
+weasyprint
+Pillow
+

@@ -1,0 +1,278 @@
+{% extends 'staff_panel/base.html' %}
+
+{% block title %}Occupancy & Revenue Reports — Staff Portal{% endblock %}
+{% block header_title %}Occupancy &amp; Revenue Reports{% endblock %}
+
+{% block content %}
+<style>
+  @media print {
+    aside, header, .no-print, nav {
+      display: none !important;
+    }
+    .pl-64 {
+      padding-left: 0 !important;
+    }
+    body, main {
+      background: white !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    .shadow-sm, .shadow-md, .shadow-xl, .shadow-2xl {
+      box-shadow: none !important;
+    }
+    .border {
+      border-color: #e2e8f0 !important;
+    }
+    .print-page-break-before {
+      page-break-before: always !important;
+      break-before: page !important;
+    }
+  }
+</style>
+
+<div class="space-y-8 max-w-7xl mx-auto" x-data="reportsPage">
+
+  <!-- Header Action & Date Summary -->
+  <div class="flex items-center justify-between flex-wrap gap-4 border-b border-slate-200 pb-5">
+    <div>
+      <h3 class="font-serif font-bold text-2xl sm:text-3xl text-teal-950">Performance Overview</h3>
+      <p class="text-xs text-slate-500 font-semibold mt-1">
+        Date Range: <span class="text-teal-900 font-bold">{{ from_date|date:"d-M-Y" }}</span> to <span class="text-teal-900 font-bold">{{ to_date|date:"d-M-Y" }}</span> ({{ days_count }} day{% if days_count > 1 %}s{% endif %})
+      </p>
+    </div>
+
+    <div class="no-print flex items-center gap-3">
+      <button type="button" @click="printReport" class="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-950 hover:bg-teal-900 text-gold text-xs font-bold rounded-xl border border-gold/30 transition-all shadow-sm cursor-pointer">
+        <svg class="w-4 h-4 text-gold" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H7a2 2 0 00-2 2v4h10z"/></svg>
+        <span>Print Report</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter & Quick Presets Card (Screen Only) -->
+  <div class="no-print bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-5">
+    <!-- Quick Select Buttons -->
+    <div>
+      <span class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Quick Date Presets</span>
+      <div class="flex items-center gap-2 flex-wrap">
+        <a href="?range_type=today" class="px-4 py-2 text-xs font-bold rounded-xl border transition-all {% if range_type == 'today' %}bg-teal-950 text-gold border-teal-950 shadow-sm{% else %}bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100{% endif %}">
+          Today
+        </a>
+        <a href="?range_type=this_week" class="px-4 py-2 text-xs font-bold rounded-xl border transition-all {% if range_type == 'this_week' %}bg-teal-950 text-gold border-teal-950 shadow-sm{% else %}bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100{% endif %}">
+          This Week
+        </a>
+        <a href="?range_type=this_month" class="px-4 py-2 text-xs font-bold rounded-xl border transition-all {% if range_type == 'this_month' %}bg-teal-950 text-gold border-teal-950 shadow-sm{% else %}bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100{% endif %}">
+          This Month
+        </a>
+        <a href="?range_type=last_month" class="px-4 py-2 text-xs font-bold rounded-xl border transition-all {% if range_type == 'last_month' %}bg-teal-950 text-gold border-teal-950 shadow-sm{% else %}bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100{% endif %}">
+          Last Month
+        </a>
+      </div>
+    </div>
+
+    <!-- Custom Search Form -->
+    <form method="GET" action="{% url 'staff_panel:reports' %}" class="space-y-4 border-t border-slate-100 pt-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+          <label for="from" class="block text-xs font-bold text-slate-600 uppercase mb-1">Check-in From</label>
+          <input type="date" name="from" id="from" value="{{ from_str }}" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600 bg-white">
+        </div>
+
+        <div>
+          <label for="to" class="block text-xs font-bold text-slate-600 uppercase mb-1">Check-in To</label>
+          <input type="date" name="to" id="to" value="{{ to_str }}" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600 bg-white">
+        </div>
+
+        <div>
+          <label for="guest_name" class="block text-xs font-bold text-slate-600 uppercase mb-1">Guest Name</label>
+          <input type="text" name="guest_name" id="guest_name" value="{{ guest_name }}" placeholder="Search guest..." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+        </div>
+
+        <div>
+          <label for="phone" class="block text-xs font-bold text-slate-600 uppercase mb-1">Phone Number</label>
+          <input type="text" name="phone" id="phone" value="{{ phone }}" placeholder="Search phone..." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <a href="{% url 'staff_panel:reports' %}" class="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Reset Filters</a>
+        <button type="submit" class="px-5 py-2.5 text-sm font-bold text-teal-950 bg-gold hover:bg-gold-light rounded-xl transition-all shadow-sm cursor-pointer border-0">Apply Filter</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Key Metrics Summary Grid -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+    <!-- Confirmed Bookings -->
+    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-2">
+      <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Confirmed Stays</span>
+      <p class="text-3xl font-serif font-bold text-slate-900">{{ confirmed_count }}</p>
+      <p class="text-[11px] text-slate-500">Confirmed &amp; Completed</p>
+    </div>
+
+    <!-- Total Revenue -->
+    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-2">
+      <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Total Revenue</span>
+      <p class="text-3xl font-serif font-bold text-emerald-700">₹{{ total_revenue|floatformat:"2" }}</p>
+      <p class="text-[11px] text-slate-500">{{ room_nights_sold }} room-night{% if room_nights_sold != 1 %}s{% endif %} sold</p>
+    </div>
+
+    <!-- Average Occupancy % -->
+    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-2">
+      <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Avg Occupancy %</span>
+      <p class="text-3xl font-serif font-bold text-teal-900">{{ occupancy_pct }}%</p>
+      <p class="text-[11px] text-slate-500">Daily average over {{ days_count }} day{% if days_count > 1 %}s{% endif %}</p>
+    </div>
+
+    <!-- Average Nightly Rate (ADR) -->
+    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-2">
+      <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Avg Daily Rate</span>
+      <p class="text-3xl font-serif font-bold text-slate-900">₹{{ average_nightly_rate|floatformat:"2" }}</p>
+      <p class="text-[11px] text-slate-500">Revenue per room night</p>
+    </div>
+
+    <!-- Cancelled Stays -->
+    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-2">
+      <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Cancelled Stays</span>
+      <p class="text-3xl font-serif font-bold text-rose-600">{{ cancelled_count }}</p>
+      <p class="text-[11px] text-slate-500">Context only (excluded)</p>
+    </div>
+  </div>
+
+  <!-- Room Type Breakdown Table -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-4 p-6 sm:p-7">
+    <div>
+      <h4 class="font-serif font-bold text-xl text-teal-950">Room Type Performance Breakdown</h4>
+      <p class="text-xs text-slate-500 mt-0.5">Revenue and room-night distribution across room categories</p>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <th class="py-3 px-4">Room Category</th>
+            <th class="py-3 px-4 text-center">Bookings Count</th>
+            <th class="py-3 px-4 text-center">Nights Sold</th>
+            <th class="py-3 px-4 text-right">Revenue</th>
+            <th class="py-3 px-4 text-right">Contribution %</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for item in room_type_breakdown %}
+            <tr class="hover:bg-slate-50/70 transition-colors">
+              <td class="py-3.5 px-4 font-semibold text-slate-900">
+                {{ item.room_type.name }}
+              </td>
+              <td class="py-3.5 px-4 text-center font-medium text-slate-700">
+                {{ item.count }}
+              </td>
+              <td class="py-3.5 px-4 text-center font-medium text-slate-700">
+                {{ item.nights }}
+              </td>
+              <td class="py-3.5 px-4 text-right font-mono font-semibold text-slate-900">
+                ₹{{ item.revenue|floatformat:"2" }}
+              </td>
+              <td class="py-3.5 px-4 text-right font-medium text-slate-600">
+                {{ item.revenue_pct|floatformat:"1" }}%
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="py-6 text-center text-slate-500 text-sm">
+                No room categories configured.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Guest Stay List Table -->
+  <div class="print-page-break-before bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-4 p-6 sm:p-7">
+    <div>
+      <h4 class="font-serif font-bold text-xl text-teal-950">Guest Stays Report</h4>
+      <p class="text-xs text-slate-500 mt-0.5">Detailed log of guest stays checking in during the selected reporting period</p>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <th class="py-3.5 px-4">Reference</th>
+            <th class="py-3.5 px-4">Guest Name</th>
+            <th class="py-3.5 px-4">Phone</th>
+            <th class="py-3.5 px-4">Room</th>
+            <th class="py-3.5 px-4">Check-In</th>
+            <th class="py-3.5 px-4">Check-Out</th>
+            <th class="py-3.5 px-4">Status</th>
+            <th class="py-3.5 px-4 text-right">Amount</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for booking in page_obj %}
+            <tr class="hover:bg-slate-50/70 transition-colors">
+              <td class="py-3.5 px-4 font-mono font-bold text-teal-900">
+                CH-{{ booking.id|stringformat:"05d" }}
+              </td>
+              <td class="py-3.5 px-4 font-semibold text-slate-900">
+                {{ booking.guest.name }}
+              </td>
+              <td class="py-3.5 px-4 text-slate-600 font-mono text-xs">
+                {{ booking.guest.phone }}
+              </td>
+              <td class="py-3.5 px-4 text-slate-800">
+                Room {{ booking.room.room_number }} <span class="text-xs text-slate-500">({{ booking.room.room_type.name }})</span>
+              </td>
+              <td class="py-3.5 px-4 text-slate-700 font-medium">
+                {{ booking.check_in|date:"d-M-Y" }}
+              </td>
+              <td class="py-3.5 px-4 text-slate-700 font-medium">
+                {{ booking.check_out|date:"d-M-Y" }}
+              </td>
+              <td class="py-3.5 px-4">
+                {% if booking.status == 'confirmed' %}
+                  <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold">Confirmed</span>
+                {% elif booking.status == 'completed' %}
+                  <span class="px-2.5 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">Departed</span>
+                {% elif booking.status == 'held' %}
+                  <span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold">Held</span>
+                {% elif booking.status == 'cancelled' %}
+                  <span class="px-2.5 py-1 bg-rose-100 text-rose-800 rounded-full text-xs font-bold">Cancelled</span>
+                {% endif %}
+              </td>
+              <td class="py-3.5 px-4 text-right font-mono font-semibold text-slate-900">
+                ₹{{ booking.total_amount|floatformat:"2" }}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" class="py-8 text-center text-slate-500 text-sm">
+                No guest stays recorded in the selected date range.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination Footer (Screen Only) -->
+    {% if page_obj.has_other_pages %}
+      <div class="no-print pt-4 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
+        <div>
+          Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} ({{ page_obj.paginator.count }} total stays)
+        </div>
+        <div class="flex items-center gap-2">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&from={{ from_str }}&to={{ to_str }}&range_type={{ range_type }}&guest_name={{ guest_name }}&phone={{ phone }}" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg hover:bg-slate-100 font-semibold text-slate-700">Previous</a>
+          {% endif %}
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&from={{ from_str }}&to={{ to_str }}&range_type={{ range_type }}&guest_name={{ guest_name }}&phone={{ phone }}" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg hover:bg-slate-100 font-semibold text-slate-700">Next</a>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

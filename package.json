@@ -1,0 +1,13 @@
+{
+  "name": "coral-heights-website",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hotel Coral Heights — static prototype",
+  "scripts": {
+    "build:css": "npx tailwindcss -i ./src/input.css -o ./static/css/tailwind.css --minify",
+    "watch:css": "npx tailwindcss -i ./src/input.css -o ./static/css/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}

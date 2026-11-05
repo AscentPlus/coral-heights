@@ -1,0 +1,163 @@
+{% extends 'staff_panel/base.html' %}
+
+{% block title %}User Management — Staff Portal{% endblock %}
+{% block header_title %}User Management{% endblock %}
+
+{% block content %}
+<div class="space-y-8 max-w-7xl mx-auto">
+  
+  <!-- Create New Staff Account Card -->
+  <div class="bg-white rounded-2xl p-6 md:p-8 border border-slate-200 shadow-sm">
+    <h3 class="font-serif font-bold text-xl text-slate-900 mb-1">Create New Staff Account</h3>    
+
+    <form method="POST" action="{% url 'staff_panel:manage_staff' %}" class="space-y-6" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="action" value="create">
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+        <div>
+          <label for="id_username" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Username *</label>
+          {{ create_form.username }}
+          {% if create_form.username.errors %}
+            <p class="text-xs text-rose-600 mt-1">{{ create_form.username.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <div>
+          <label for="id_password" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Password *</label>
+          {{ create_form.password }}
+          {% if create_form.password.errors %}
+            <p class="text-xs text-rose-600 mt-1">{{ create_form.password.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Assign Roles *</label>
+          <div class="flex flex-wrap items-center gap-6 pt-2.5">
+            <label class="inline-flex items-center gap-2 text-sm text-slate-800 font-medium cursor-pointer">
+              {{ create_form.access_bookings }}
+              <span>Bookings &amp; Operations</span>
+            </label>
+            <label class="inline-flex items-center gap-2 text-sm text-slate-800 font-medium cursor-pointer">
+              {{ create_form.access_website }}
+              <span>Website Content</span>
+            </label>
+          </div>
+          {% if create_form.non_field_errors %}
+            <p class="text-xs text-rose-600 mt-1 font-semibold">{{ create_form.non_field_errors.0 }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2 border-t border-slate-100">
+        <button type="submit" class="px-6 py-2.5 bg-teal-950 text-gold font-bold rounded-xl text-sm hover:bg-teal-900 transition-all shadow-md">
+          + Create Staff User
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Existing Staff Accounts Table -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="p-6 border-b border-slate-200 flex justify-between items-center">
+      <div>
+        <h3 class="font-serif font-bold text-xl text-slate-900">Existing Staff Accounts</h3>
+        <p class="text-slate-500 text-xs mt-0.5">Manage role and status of staff members.</p>
+      </div>
+      <span class="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-full border border-slate-200">
+        {{ staff_users.count }} Member{% if staff_users.count != 1 %}s{% endif %}
+      </span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm text-slate-700">
+        <thead class="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+          <tr>
+            <th class="px-6 py-4">Username</th>
+            <th class="px-6 py-4">Assigned Roles</th>
+            <th class="px-6 py-4">Status</th>
+            <th class="px-6 py-4">Created</th>
+            <th class="px-6 py-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200">
+          {% for staff in staff_users %}
+            <tr class="hover:bg-slate-50/80 transition-colors">
+              <!-- Username -->
+              <td class="px-6 py-4 font-bold text-slate-900">
+                {{ staff.username }}
+              </td>
+
+              <!-- Section Checkboxes Form -->
+              <td class="px-6 py-4">
+                <form method="POST" action="{% url 'staff_panel:manage_staff' %}" class="flex items-center gap-4">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="update_role">
+                  <input type="hidden" name="user_id" value="{{ staff.id }}">
+                  
+                  <label class="inline-flex items-center gap-1.5 text-xs text-slate-800 font-medium cursor-pointer">
+                    <input type="checkbox" name="access_bookings" value="1" {% if staff.staff_profile.access_level == 'bookings' or staff.staff_profile.access_level == 'both' %}checked{% endif %} class="w-4 h-4 text-teal-800 rounded border-slate-300 focus:ring-teal-700">
+                    <span>Bookings</span>
+                  </label>
+
+                  <label class="inline-flex items-center gap-1.5 text-xs text-slate-800 font-medium cursor-pointer">
+                    <input type="checkbox" name="access_website" value="1" {% if staff.staff_profile.access_level == 'website' or staff.staff_profile.access_level == 'both' %}checked{% endif %} class="w-4 h-4 text-teal-800 rounded border-slate-300 focus:ring-teal-700">
+                    <span>Website</span>
+                  </label>
+
+                  <button type="submit" class="px-3.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-semibold rounded-lg transition-all cursor-pointer" title="Save Permissions">
+                    Save
+                  </button>
+                </form>
+              </td>
+
+              <!-- Status -->
+              <td class="px-6 py-4">
+                {% if staff.is_active %}
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full text-xs font-semibold">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Active
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-100 text-rose-800 border border-rose-300 rounded-full text-xs font-semibold">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-600"></span> Inactive
+                  </span>
+                {% endif %}
+              </td>
+
+              <!-- Date Joined -->
+              <td class="px-6 py-4 text-xs text-slate-500">
+                {{ staff.date_joined|date:"d M Y" }}
+              </td>
+
+              <!-- Actions -->
+              <td class="px-6 py-4 text-right">
+                <!-- Toggle Active Form -->
+                <form method="POST" action="{% url 'staff_panel:manage_staff' %}" class="inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="toggle_active">
+                  <input type="hidden" name="user_id" value="{{ staff.id }}">
+                  {% if staff.is_active %}
+                    <button type="submit" data-confirm="Are you sure you want to deactivate staff account '{{ staff.username }}'?" class="px-4 py-2 bg-rose-50 text-rose-700 border border-rose-200 text-xs font-semibold rounded-lg hover:bg-rose-100 transition-all cursor-pointer">
+                      Deactivate
+                    </button>
+                  {% else %}
+                    <button type="submit" data-confirm="Are you sure you want to activate staff account '{{ staff.username }}'?" class="px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold rounded-lg hover:bg-emerald-100 transition-all cursor-pointer">
+                      Activate
+                    </button>
+                  {% endif %}
+                </form>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="px-6 py-12 text-center text-slate-500 text-sm">
+                No non-superuser staff accounts found. Create a staff account above.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

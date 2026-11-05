@@ -1,0 +1,155 @@
+{% extends 'staff_panel/base.html' %}
+
+{% block title %}Catering & Event Enquiries{% endblock %}
+{% block header_title %}Catering & Event Enquiries{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-7xl mx-auto">
+
+  <!-- Filter Card -->
+  <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+    <form method="GET" action="{% url 'staff_panel:enquiries' %}" class="space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Contact Name -->
+        <div>
+          <label for="contact_name" class="block text-xs font-bold text-slate-600 uppercase mb-1">Contact Name</label>
+          <input type="text" name="contact_name" id="contact_name" value="{{ contact_name }}" placeholder="Search name..." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+        </div>
+
+        <!-- Contact Phone -->
+        <div>
+          <label for="contact_phone" class="block text-xs font-bold text-slate-600 uppercase mb-1">Phone Number</label>
+          <input type="text" name="contact_phone" id="contact_phone" value="{{ contact_phone }}" placeholder="Search phone..." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+        </div>
+
+        <!-- Status -->
+        <div>
+          <label for="status" class="block text-xs font-bold text-slate-600 uppercase mb-1">Status</label>
+          <select name="status" id="status" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600 bg-white">
+            <option value="">-- All Statuses --</option>
+            {% for s_val, s_label in status_choices %}
+              <option value="{{ s_val }}" {% if status == s_val %}selected{% endif %}>{{ s_label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Function Type -->
+        <div>
+          <label for="function_type" class="block text-xs font-bold text-slate-600 uppercase mb-1">Event Type</label>
+          <select name="function_type" id="function_type" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600 bg-white">
+            <option value="">-- All Event Types --</option>
+            {% for f_val, f_label in function_choices %}
+              <option value="{{ f_val }}" {% if function_type == f_val %}selected{% endif %}>{{ f_label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Preferred Date From -->
+        <div>
+          <label for="date_from" class="block text-xs font-bold text-slate-600 uppercase mb-1">Preferred Date From</label>
+          <input type="date" name="date_from" id="date_from" value="{{ date_from }}" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+        </div>
+
+        <!-- Preferred Date To -->
+        <div>
+          <label for="date_to" class="block text-xs font-bold text-slate-600 uppercase mb-1">Preferred Date To</label>
+          <input type="date" name="date_to" id="date_to" value="{{ date_to }}" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end pt-2 border-t border-slate-100">
+        <div class="flex items-center gap-2">
+          <a href="{% url 'staff_panel:enquiries' %}" class="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Clear Filters</a>
+          <button type="submit" class="px-5 py-2.5 text-sm font-bold text-teal-950 bg-gold hover:bg-gold-light rounded-xl transition-all shadow-sm">Apply Filter</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Enquiries Data Table -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <th class="py-3.5 px-4">Contact Name</th>
+            <th class="py-3.5 px-4">Phone</th>
+            <th class="py-3.5 px-4">Event Type</th>
+            <th class="py-3.5 px-4">Preferred Date</th>
+            <th class="py-3.5 px-4">Guests</th>
+            <th class="py-3.5 px-4">Status</th>
+            <th class="py-3.5 px-4">Submitted</th>
+            <th class="py-3.5 px-4 text-center">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for enquiry in page_obj %}
+            <tr class="hover:bg-slate-50/80 transition-colors">
+              <td class="py-3.5 px-4 font-semibold text-slate-900">
+                {{ enquiry.contact_name }}
+              </td>
+              <td class="py-3.5 px-4 text-slate-600 font-mono text-xs">
+                {{ enquiry.contact_phone }}
+              </td>
+              <td class="py-3.5 px-4 text-slate-700">
+                {{ enquiry.get_function_type_display }}
+              </td>
+              <td class="py-3.5 px-4 text-slate-700 font-medium">
+                {{ enquiry.preferred_date|date:"d-M" }}
+              </td>
+              <td class="py-3.5 px-4 text-slate-700 text-center">
+                {{ enquiry.guest_count }}
+              </td>
+              <td class="py-3.5 px-4">
+                {% if enquiry.status == 'new' %}
+                  <span class="px-2.5 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">New</span>
+                {% elif enquiry.status == 'contacted' %}
+                  <span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold">Contacted</span>
+                {% elif enquiry.status == 'closed' %}
+                  <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-medium">Closed</span>
+                {% endif %}
+              </td>
+              <td class="py-3.5 px-4 text-slate-500 text-xs">
+                {{ enquiry.created_at|date:"d-M H:i" }}
+              </td>
+              <td class="py-3.5 px-4 text-center">
+                <div class="flex items-center justify-center gap-2 flex-wrap">
+                  <a href="{% url 'staff_panel:enquiry_detail' enquiry.id %}" class="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-900 hover:bg-teal-800 text-white text-xs font-semibold rounded-lg transition-colors">
+                    Details
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                  </a>
+
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8" class="py-8 text-center text-slate-500 text-sm">
+                No enquiries found matching the selected criteria.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination Footer -->
+    {% if page_obj.has_other_pages %}
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
+        <div>
+          Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} ({{ page_obj.paginator.count }} total enquiries)
+        </div>
+        <div class="flex items-center gap-2">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&contact_name={{ contact_name }}&contact_phone={{ contact_phone }}&status={{ status }}&function_type={{ function_type }}&date_from={{ date_from }}&date_to={{ date_to }}" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg hover:bg-slate-100 font-semibold text-slate-700">Previous</a>
+          {% endif %}
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&contact_name={{ contact_name }}&contact_phone={{ contact_phone }}&status={{ status }}&function_type={{ function_type }}&date_from={{ date_from }}&date_to={{ date_to }}" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg hover:bg-slate-100 font-semibold text-slate-700">Next</a>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

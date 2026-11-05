@@ -1,0 +1,129 @@
+{% extends 'staff_panel/base.html' %}
+
+{% block title %}Room Inventory & Status{% endblock %}
+{% block header_title %}Room Inventory & Status{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-7xl mx-auto">
+
+  <!-- Header Banner -->
+  <div class="flex items-center justify-between bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+    <div>
+      <h3 class="font-serif font-bold text-xl text-teal-950">Today's Room Status</h3>
+      <p class="text-xs text-slate-500 mt-1">Live occupancy status for {{ today|date:"F j, Y" }}</p>
+    </div>
+    <!-- Legend -->
+    <div class="hidden sm:flex items-center gap-4 text-xs font-semibold text-slate-600">
+      <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>Occupied</span>
+      <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-orange-400"></span>Pending Hold</span>
+      <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>Vacant</span>
+    </div>
+  </div>
+
+  <!-- Rooms Data Table -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <th class="py-3.5 px-6">Room Number</th>
+            <th class="py-3.5 px-6">Room Type</th>
+            <th class="py-3.5 px-6">Room Status</th>
+            <th class="py-3.5 px-6">Current Guest</th>
+            <th class="py-3.5 px-6">Check-out</th>
+            <th class="py-3.5 px-6 text-center">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for item in room_statuses %}
+            <tr class="hover:bg-slate-50/80 transition-colors">
+              <td class="py-4 px-6 font-mono font-bold text-slate-900 text-base">
+                Room {{ item.room.room_number }}
+              </td>
+              <td class="py-4 px-6 text-slate-700 font-medium">
+                {{ item.room.room_type.name }}
+              </td>
+              <td class="py-4 px-6">
+                {% if item.is_occupied %}
+                  <span class="px-3 py-1 bg-amber-100 text-amber-900 rounded-full text-xs font-bold inline-flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-amber-600"></span>
+                    Occupied
+                  </span>
+                  {% if item.is_overdue %}
+                    <span class="ml-2 px-2.5 py-0.5 bg-rose-600 text-white rounded-full text-[10px] font-bold uppercase tracking-wider animate-pulse">Overdue</span>
+                  {% endif %}
+                {% elif item.pending_hold %}
+                  <!-- Pending Hold — active held booking not yet confirmed -->
+                  <span class="px-3 py-1 bg-orange-100 text-orange-900 rounded-full text-xs font-bold inline-flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-orange-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Pending Hold
+                  </span>
+                {% else %}
+                  <span class="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold inline-flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                    Vacant
+                  </span>
+                {% endif %}
+              </td>
+              <td class="py-4 px-6 text-slate-800">
+                {% if item.is_occupied and item.booking %}
+                  <span class="font-semibold text-slate-900 block">{{ item.booking.guest.name }}</span>
+                  <span class="text-xs font-mono text-slate-500">{{ item.booking.guest.phone }}</span>
+                {% elif item.pending_hold and item.hold_booking %}
+                  <span class="font-semibold text-orange-900 block">{{ item.hold_booking.guest.name }}</span>
+                  <span class="text-xs font-mono text-orange-700">{{ item.hold_booking.guest.phone }}</span>
+                  <span class="text-[10px] text-orange-600 font-semibold block mt-0.5">Mid-checkout — payment pending</span>
+                {% else %}
+                  <span class="text-slate-400 font-normal">—</span>
+                {% endif %}
+              </td>
+              <td class="py-4 px-6 text-slate-700">
+                {% if item.is_occupied and item.booking %}
+                  <span class="{% if item.is_overdue %}text-rose-600 font-bold{% else %}font-medium{% endif %}">
+                    {{ item.booking.check_out|date:"d-M" }}
+                  </span>
+                {% elif item.pending_hold and item.hold_booking %}
+                  <span class="text-orange-700 font-semibold text-xs inline-flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 text-orange-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    {% if item.hold_booking.hold_time_remaining %}
+                      {{ item.hold_booking.hold_time_remaining }}
+                    {% else %}
+                      Hold expiring
+                    {% endif %}
+                  </span>
+                {% else %}
+                  <span class="text-slate-400 font-normal">—</span>
+                {% endif %}
+              </td>
+              <td class="py-4 px-6 text-center">
+                {% if item.is_occupied and item.booking %}
+                  <a href="{% url 'staff_panel:booking_detail' item.booking.id %}" class="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-900 hover:bg-teal-800 text-white text-xs font-semibold rounded-lg transition-colors">
+                    View Booking
+                  </a>
+                {% elif item.pending_hold and item.hold_booking %}
+                  <a href="{% url 'staff_panel:booking_detail' item.hold_booking.id %}" class="inline-flex items-center gap-1 px-3 py-1.5 bg-orange-700 hover:bg-orange-800 text-white text-xs font-semibold rounded-lg transition-colors">
+                    View Hold
+                  </a>
+                {% else %}
+                  <span class="text-xs text-slate-400">Ready for booking</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="py-8 text-center text-slate-500 text-sm">
+                No physical rooms configured in database.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

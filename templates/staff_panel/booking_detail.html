@@ -1,0 +1,212 @@
+{% extends 'staff_panel/base.html' %}
+
+{% block title %}Booking Details — {{ booking.reference }}{% endblock %}
+{% block header_title %}Booking Details{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-4xl mx-auto">
+
+  <!-- Back Link & Action Header -->
+  <div class="flex items-center justify-between flex-wrap gap-3">
+    <a href="{% url 'staff_panel:bookings' %}" class="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      Back to Bookings
+    </a>
+
+    <div class="flex items-center gap-3 flex-wrap">
+      {% if receipt_url %}
+        <a href="{{ receipt_url }}" target="_blank" class="px-5 py-2.5 bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-sm font-bold rounded-xl transition-all shadow-sm inline-flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-teal-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          Print Receipt
+        </a>
+      {% else %}
+        <button disabled class="px-4 py-2 bg-slate-100 text-slate-400 border border-slate-200 text-xs font-semibold rounded-xl cursor-not-allowed">
+          Receipt Unavailable
+        </button>
+      {% endif %}
+
+      {% if is_eligible_for_departure %}
+        <form method="POST" action="{% url 'staff_panel:booking_detail' booking.id %}" class="inline">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="mark_departed">
+          <button type="submit" data-confirm="Are you sure you want to mark guest {{ booking.guest.name }} as DEPARTED? This will free Room {{ booking.room.room_number }} immediately for new bookings." class="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-bold rounded-xl transition-all shadow-sm cursor-pointer border-0">
+            Mark Guest Departed
+          </button>
+        </form>
+      {% endif %}
+
+      {% if is_eligible_for_cancellation %}
+        <div x-data="cancelBookingPanel">
+        <button
+          id="btn-show-cancel"
+          type="button"
+          @click="show()"
+          class="px-5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-sm font-bold rounded-xl transition-all shadow-sm cursor-pointer">
+          Cancel Booking
+        </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Cancel Booking Inline Form (hidden by default) -->
+  {% if is_eligible_for_cancellation %}
+    <div id="cancel-booking-form" x-show="open" x-cloak class="bg-rose-50 border border-rose-200 rounded-2xl p-5 shadow-sm">
+      <h4 class="font-serif font-bold text-base text-rose-900 mb-3">Cancel This Booking</h4>
+      <p class="text-xs text-rose-700 mb-4">
+        This will immediately mark the booking as cancelled and free the room. No refund is processed here — this only updates the booking status in the system.
+      </p>
+      <form method="POST" action="{% url 'staff_panel:booking_detail' booking.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="cancel">
+        <div class="mb-4">
+          <label for="cancellation_reason" class="block text-xs font-bold text-rose-800 uppercase tracking-wider mb-1.5">Reason (Optional)</label>
+          <textarea
+            name="cancellation_reason"
+            id="cancellation_reason"
+            rows="2"
+            placeholder="e.g. Guest requested cancellation by phone."
+            class="w-full px-3 py-2 text-sm border border-rose-200 rounded-xl focus:outline-none focus:border-rose-500 bg-white resize-none"
+          ></textarea>
+        </div>
+        <div class="flex items-center gap-3">
+          <button
+            type="submit"
+            data-confirm="Are you sure you want to CANCEL booking {{ booking.reference }} for {{ booking.guest.name }}? This cannot be undone."
+            class="px-5 py-2 bg-rose-700 hover:bg-rose-800 text-white text-xs font-bold rounded-xl transition-all shadow-sm cursor-pointer border-0">
+            Confirm Cancellation
+          </button>
+          <button
+            type="button"
+            @click="hide()"
+            class="px-4 py-2 text-xs font-semibold text-rose-600 hover:text-rose-800 transition-colors">
+            Dismiss
+          </button>
+        </div>
+      </form>
+    </div>
+    </div>
+  {% endif %}
+
+  <!-- Booking Main Summary Card -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+    <!-- Top Header -->
+    <div class="flex items-center justify-between border-b border-slate-100 pb-5 flex-wrap gap-3">
+      <div>
+        <span class="text-xs font-bold text-slate-400 uppercase tracking-widest block">Booking Reference</span>
+        <h3 class="font-serif font-bold text-2xl sm:text-3xl text-teal-950 mt-0.5">{{ booking.reference }}</h3>
+      </div>
+      <div class="text-right">
+        {% if booking.status == 'confirmed' %}
+          <span class="px-3 py-1.5 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold">Confirmed</span>
+        {% elif booking.status == 'completed' %}
+          <span class="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-full text-xs font-semibold">Completed</span>
+        {% elif booking.status == 'held' %}
+          <span class="px-3 py-1.5 bg-amber-100 text-amber-800 rounded-full text-xs font-semibold">Held</span>
+          {% if booking.hold_time_remaining %}
+            <span class="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-semibold block mt-1.5 inline-flex items-center gap-1">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              {{ booking.hold_time_remaining }}
+            </span>
+          {% endif %}
+        {% else %}
+          <span class="px-3 py-1.5 bg-rose-100 text-rose-800 rounded-full text-xs font-semibold">{{ booking.get_status_display }}</span>
+        {% endif %}
+
+        {% if booking.is_overdue %}
+          <span class="px-2.5 py-1 bg-rose-600 text-white rounded-full text-xs font-bold block mt-1.5 animate-pulse">Overdue checkout</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Details Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
+      <!-- Guest Info -->
+      <div class="bg-slate-50 rounded-xl p-5 border border-slate-100 space-y-3">
+        <h4 class="font-serif font-bold text-base text-slate-900 border-b border-slate-200/80 pb-2">Guest Information</h4>
+        <div>
+          <span class="text-xs text-slate-500 font-semibold block">Full Name</span>
+          <span class="font-semibold text-slate-900">{{ booking.guest.name }}</span>
+        </div>
+        <div>
+          <span class="text-xs text-slate-500 font-semibold block">Phone Number</span>
+          <span class="text-slate-800 font-mono">{{ booking.guest.phone }}</span>
+        </div>
+        <div>
+          <span class="text-xs text-slate-500 font-semibold block">Email</span>
+          <span class="text-slate-800">{{ booking.guest.email|default:"Not provided" }}</span>
+        </div>
+      </div>
+
+      <!-- Room & Dates Info -->
+      <div class="bg-slate-50 rounded-xl p-5 border border-slate-100 space-y-3">
+        <h4 class="font-serif font-bold text-base text-slate-900 border-b border-slate-200/80 pb-2">Room & Dates</h4>
+        <div>
+          <span class="text-xs text-slate-500 font-semibold block">Room</span>
+          <span class="font-semibold text-slate-900">Room {{ booking.room.room_number }} ({{ booking.room.room_type.name }})</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <span class="text-xs text-slate-500 font-semibold block">Check-in</span>
+            <span class="text-slate-800 font-medium">{{ booking.check_in|date:"d-m-Y" }}</span>
+          </div>
+          <div>
+            <span class="text-xs text-slate-500 font-semibold block">Check-out</span>
+            <span class="text-slate-800 font-medium">{{ booking.check_out|date:"d-m-Y" }}</span>
+          </div>
+        </div>
+        <div>
+          <span class="text-xs text-slate-500 font-semibold block">Occupants</span>
+          <span class="text-slate-800">{{ booking.adults }} Adult{% if booking.adults > 1 %}s{% endif %}{% if booking.children %}, {{ booking.children }} Child{% if booking.children > 1 %}ren{% endif %}{% endif %}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Financial & System Timestamps -->
+    <div class="bg-amber-50/50 rounded-xl p-5 border border-amber-200/60 space-y-4 text-sm">
+      <h4 class="font-serif font-bold text-base text-slate-900 border-b border-amber-200/80 pb-2">Payment & Departure Details</h4>
+      
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <span class="text-xs text-slate-500 font-semibold block">Total Amount</span>
+          <span class="font-serif font-bold text-xl text-teal-950">{% if booking.total_amount %}₹{{ booking.total_amount }}{% else %}-{% endif %}</span>
+        </div>
+
+        <div>
+          <span class="text-xs text-slate-500 font-semibold block">Payment Reference</span>
+          <span class="font-mono text-slate-800 font-medium">{{ booking.payment_reference|default:"None" }}</span>
+        </div>
+
+        <div>
+          <span class="text-xs text-slate-500 font-semibold block">Paid At</span>
+          <span class="text-slate-800">{{ booking.paid_at|date:"d-m-Y H:i"|default:"-" }}</span>
+        </div>
+      </div>
+
+      {% if booking.actual_check_out %}
+        <div class="pt-2 border-t border-amber-200/60">
+          <span class="text-xs text-slate-500 font-semibold block">Actual Departure Timestamp</span>
+          <span class="font-medium text-emerald-800">{{ booking.actual_check_out|date:"d-m-Y H:i:s" }}</span>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Cancellation Details (only shown when cancelled) -->
+    {% if booking.status == 'cancelled' and booking.cancelled_at %}
+      <div class="bg-rose-50 rounded-xl p-5 border border-rose-200 space-y-3 text-sm">
+        <h4 class="font-serif font-bold text-base text-rose-900 border-b border-rose-200/80 pb-2">Cancellation Details</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <span class="text-xs text-rose-600 font-semibold block">Cancelled At</span>
+            <span class="font-medium text-rose-900">{{ booking.cancelled_at|date:"d-m-Y H:i:s" }}</span>
+          </div>
+          <div>
+            <span class="text-xs text-rose-600 font-semibold block">Reason</span>
+            <span class="text-rose-900">{{ booking.cancellation_reason|default:"No reason provided" }}</span>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

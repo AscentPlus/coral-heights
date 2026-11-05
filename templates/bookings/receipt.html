@@ -1,0 +1,428 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booking Receipt — CH-{{ booking.id|stringformat:"05d" }} — Hotel Coral Heights</title>
+  <style>
+    :root {
+      --primary-teal: #042f2e;
+      --secondary-teal: #115e59;
+      --accent-gold: #c8a45e;
+      --cream: #faf9f6;
+      --text-dark: #1f2937;
+      --text-muted: #6b7280;
+      --border-color: #e5e7eb;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f3f4f6;
+      color: var(--text-dark);
+      line-height: 1.5;
+      padding: 2rem 1rem;
+    }
+
+    .receipt-container {
+      max-width: 720px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+
+    .receipt-header {
+      background-color: var(--primary-teal);
+      color: #ffffff;
+      padding: 2rem 2.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 3px solid var(--accent-gold);
+    }
+
+    .hotel-brand h1 {
+      font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: 0.02em;
+    }
+
+    .hotel-brand p {
+      color: var(--accent-gold);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-top: 0.25rem;
+    }
+
+    .hotel-contact {
+      text-align: right;
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.8);
+      line-height: 1.4;
+    }
+
+    .receipt-body {
+      padding: 2.5rem;
+    }
+
+    .receipt-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1.5rem;
+    }
+
+    .receipt-title h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary-teal);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .receipt-ref {
+      font-family: monospace;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--secondary-teal);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background-color: #d1fae5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .info-block {
+      background: var(--cream);
+      padding: 1.25rem;
+      border-radius: 12px;
+      border: 1px solid rgba(200, 164, 94, 0.25);
+    }
+
+    .info-block h3 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--secondary-teal);
+      margin-bottom: 0.75rem;
+      font-weight: 700;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.875rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .info-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .info-label {
+      color: var(--text-muted);
+    }
+
+    .info-value {
+      font-weight: 600;
+      color: var(--text-dark);
+    }
+
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2rem;
+    }
+
+    .summary-table th {
+      background-color: var(--primary-teal);
+      color: #ffffff;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.75rem 1rem;
+      text-align: left;
+    }
+
+    .summary-table th:last-child {
+      text-align: right;
+    }
+
+    .summary-table td {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.9rem;
+    }
+
+    .summary-table td:last-child {
+      text-align: right;
+      font-weight: 600;
+    }
+
+    .total-row td {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary-teal);
+      background-color: var(--cream);
+      border-bottom: none;
+    }
+
+    .receipt-footer {
+      text-align: center;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    .action-bar {
+      display: flex;
+      justify-content: center;
+      padding: 1.5rem 2.5rem 2.5rem 2.5rem;
+      background-color: #ffffff;
+    }
+
+    .btn-print {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background-color: var(--accent-gold);
+      color: var(--primary-teal);
+      font-weight: 700;
+      padding: 0.75rem 2rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      transition: all 0.2s ease;
+    }
+
+    .btn-print:hover {
+      background-color: #d6b26b;
+      transform: translateY(-1px);
+    }
+
+    @media print {
+      @page {
+        size: A4;
+        margin: 0.8cm 1cm;
+      }
+
+      body {
+        background-color: #ffffff;
+        padding: 0;
+      }
+
+      .receipt-container {
+        box-shadow: none;
+        border: none;
+        border-radius: 0;
+        max-width: 100%;
+      }
+
+      .receipt-header {
+        padding: 1.5rem 2rem;
+      }
+
+      .receipt-body {
+        padding: 1.5rem 2rem;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .receipt-header {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .hotel-contact {
+        text-align: left;
+      }
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="receipt-container">
+    <!-- Header -->
+    <header class="receipt-header">
+      <div class="hotel-brand">
+        <h1>Hotel Coral Heights</h1>
+        <p>Ambalapuzha · Alappuzha</p>
+      </div>
+      <div class="hotel-contact">
+        <p>{{ contact_info.address_line_1 }}</p>
+        <p>{{ contact_info.address_line_2 }}, {{ contact_info.address_line_3 }}</p>
+        <p>Phone: {{ contact_info.primary_phone }}</p>
+        <p>Email: {{ contact_info.email }}</p>
+      </div>
+    </header>
+
+    <!-- Body -->
+    <main class="receipt-body">
+      <div class="receipt-title-row">
+        <div>
+          <div class="receipt-title">
+            <h2>Official Booking Receipt</h2>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+            Issued on {% if booking.paid_at %}{{ booking.paid_at|date:"d M Y, h:i A" }}{% else %}{{ booking.created_at|date:"d M Y, h:i A" }}{% endif %}
+          </p>
+        </div>
+        <div style="text-align: right;">
+          <p class="receipt-ref">CH-{{ booking.id|stringformat:"05d" }}</p>
+          <div style="margin-top: 0.4rem;">
+            <span class="status-badge">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              Payment Confirmed
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Grid -->
+      <div class="info-grid">
+        <!-- Guest Details -->
+        <div class="info-block">
+          <h3>Guest Details</h3>
+          <div class="info-row">
+            <span class="info-label">Name</span>
+            <span class="info-value">{{ booking.guest.name }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Phone</span>
+            <span class="info-value">{{ booking.guest.phone }}</span>
+          </div>
+          {% if booking.guest.email %}
+          <div class="info-row">
+            <span class="info-label">Email</span>
+            <span class="info-value">{{ booking.guest.email }}</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Reservation & Allotment -->
+        <div class="info-block">
+          <h3>Reservation &amp; Allotment</h3>
+          <div class="info-row">
+            <span class="info-label">Room Type</span>
+            <span class="info-value">{{ booking.room.room_type.name }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Allotted Room</span>
+            <span class="info-value" style="color: var(--primary-teal); font-weight: 700;">Room {{ booking.room.room_number }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Guests</span>
+            <span class="info-value">{{ booking.adults }} Adult{% if booking.adults > 1 %}s{% endif %}{% if booking.children %}, {{ booking.children }} Child{% if booking.children > 1 %}ren{% endif %}{% endif %}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stay Dates & Payment Reference -->
+      <div class="info-block" style="margin-bottom: 2rem;">
+        <h3>Stay &amp; Payment Details</h3>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; font-size: 0.875rem;">
+          <div>
+            <span class="info-label" style="display: block; font-size: 0.75rem;">Check-in</span>
+            <span class="info-value" style="font-size: 0.95rem;">{{ booking.check_in|date:"d-m-Y" }}</span>
+          </div>
+          <div>
+            <span class="info-label" style="display: block; font-size: 0.75rem;">Check-out</span>
+            <span class="info-value" style="font-size: 0.95rem;">{{ booking.check_out|date:"d-m-Y" }}</span>
+          </div>
+          <div>
+            <span class="info-label" style="display: block; font-size: 0.75rem;">Payment Ref</span>
+            <span class="info-value" style="font-family: monospace;">{{ booking.payment_reference|default:"N/A" }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Financial Summary -->
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <strong>{{ booking.room.room_type.name }}</strong><br/>
+              <span style="font-size: 0.8rem; color: var(--text-muted);">
+                Room {{ booking.room.room_number }} · {{ booking.check_in|date:"d-m-Y" }} to {{ booking.check_out|date:"d-m-Y" }}
+              </span>
+            </td>
+            <td>₹{{ booking.total_amount }}</td>
+          </tr>
+          <tr class="total-row">
+            <td>Total Paid</td>
+            <td>₹{{ booking.total_amount }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Footer Note -->
+      <footer class="receipt-footer">
+        <p>Thank you for choosing Hotel Coral Heights!</p>
+        <p style="margin-top: 0.25rem;">This is an official computer-generated receipt for your confirmed booking.</p>
+        {% if cancellation_policy %}
+          <p style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 0.75rem; max-width: 540px; margin-left: auto; margin-right: auto;">
+            <strong>Cancellation Policy:</strong> {{ cancellation_policy }}
+          </p>
+        {% endif %}
+      </footer>
+    </main>
+
+    <!-- Action Bar -->
+    {% if not is_pdf %}
+    <div class="action-bar no-print">
+      <button id="btn-print-receipt" type="button" class="btn-print">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+        Print Receipt
+      </button>
+    </div>
+    {% endif %}
+  </div>
+  {% if not is_pdf %}
+  <script src="{% static 'js/receipt.js' %}"></script>
+  {% endif %}
+</body>
+</html>

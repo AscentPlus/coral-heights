@@ -1,0 +1,178 @@
+{% extends 'staff_panel/base.html' %}
+
+{% block title %}Bookings & Guest Management{% endblock %}
+{% block header_title %}Bookings & Guest Management{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-7xl mx-auto">
+
+  <!-- Filter Card -->
+  <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+    <form method="GET" action="{% url 'staff_panel:bookings' %}" class="space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <!-- Guest Name -->
+        <div>
+          <label for="guest_name" class="block text-xs font-bold text-slate-600 uppercase mb-1">Guest Name</label>
+          <input type="text" name="guest_name" id="guest_name" value="{{ guest_name }}" placeholder="Search name..." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+        </div>
+
+        <!-- Phone -->
+        <div>
+          <label for="phone" class="block text-xs font-bold text-slate-600 uppercase mb-1">Phone Number</label>
+          <input type="text" name="phone" id="phone" value="{{ phone }}" placeholder="Search phone..." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+        </div>
+
+        <!-- Status -->
+        <div>
+          <label for="status" class="block text-xs font-bold text-slate-600 uppercase mb-1">Status</label>
+          <select name="status" id="status" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600 bg-white">
+            <option value="">-- All Statuses --</option>
+            {% for s_val, s_label in status_choices %}
+              <option value="{{ s_val }}" {% if status == s_val %}selected{% endif %}>{{ s_label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Check-in From -->
+        <div>
+          <label for="check_in_from" class="block text-xs font-bold text-slate-600 uppercase mb-1">Check-in From</label>
+          <input type="date" name="check_in_from" id="check_in_from" value="{{ check_in_from }}" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+        </div>
+
+        <!-- Check-in To -->
+        <div>
+          <label for="check_in_to" class="block text-xs font-bold text-slate-600 uppercase mb-1">Check-in To</label>
+          <input type="date" name="check_in_to" id="check_in_to" value="{{ check_in_to }}" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:border-teal-600">
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+        <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+          <input type="checkbox" name="overdue" value="1" {% if overdue == '1' %}checked{% endif %} class="rounded text-teal-600 focus:ring-teal-500">
+          <span>Show Overdue Checkouts Only</span>
+        </label>
+
+        <div class="flex items-center gap-2">
+          <a href="{% url 'staff_panel:bookings' %}" class="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Clear Filters</a>
+          <button type="submit" class="px-5 py-2.5 text-sm font-bold text-teal-950 bg-gold hover:bg-gold-light rounded-xl transition-all shadow-sm">Apply Filter</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Bookings Data Table -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <th class="py-3.5 px-4">Guest Name</th>
+            <th class="py-3.5 px-4">Phone</th>
+            <th class="py-3.5 px-4">Room</th>
+            <th class="py-3.5 px-4">Check-in</th>
+            <th class="py-3.5 px-4">Check-out</th>
+            <th class="py-3.5 px-4">Status</th>
+            <th class="py-3.5 px-4 text-right">Total Amount</th>
+            <th class="py-3.5 px-4 text-center">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for booking in page_obj %}
+            <tr class="hover:bg-slate-50/80 transition-colors">
+              <td class="py-3.5 px-4 font-semibold text-slate-900">
+                {{ booking.guest.name }}
+              </td>
+              <td class="py-3.5 px-4 text-slate-600">
+                {{ booking.guest.phone }}
+              </td>
+              <td class="py-3.5 px-4 text-slate-800">
+                <span class="font-medium">Room {{ booking.room.room_number }}</span>
+                <span class="text-xs text-slate-500 block">{{ booking.room.room_type.name }}</span>
+              </td>
+              <td class="py-3.5 px-4 text-slate-700">
+                {{ booking.check_in|date:"d-M" }}
+              </td>
+              <td class="py-3.5 px-4 text-slate-700">
+                {{ booking.check_out|date:"d-M" }}
+              </td>
+              <td class="py-3.5 px-4">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  {% if booking.status == 'confirmed' %}
+                    <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold">Confirmed</span>
+                  {% elif booking.status == 'completed' %}
+                    <span class="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-medium">Completed</span>
+                  {% elif booking.status == 'held' %}
+                    <span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-medium">Held</span>
+                    {% if booking.hold_time_remaining %}
+                      <span class="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-[10px] font-semibold inline-flex items-center gap-0.5">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        {{ booking.hold_time_remaining }}
+                      </span>
+                    {% endif %}
+                  {% else %}
+                    <span class="px-2.5 py-1 bg-rose-100 text-rose-800 rounded-full text-xs font-medium">{{ booking.get_status_display }}</span>
+                  {% endif %}
+
+                  {% if booking.is_overdue %}
+                    <span class="px-2 py-0.5 bg-rose-600 text-white rounded-full text-[10px] font-bold uppercase tracking-wider animate-pulse">Overdue checkout</span>
+                  {% endif %}
+                </div>
+              </td>
+              <td class="py-3.5 px-4 text-right font-serif font-bold text-slate-900">
+                {% if booking.total_amount %}₹{{ booking.total_amount }}{% else %}-{% endif %}
+              </td>
+              <td class="py-3.5 px-4 text-center">
+                <div class="flex items-center justify-center gap-2 flex-wrap">
+                  <a href="{% url 'staff_panel:booking_detail' booking.id %}" class="inline-flex items-center gap-1 px-4 py-2 bg-teal-900 hover:bg-teal-800 text-white text-sm font-semibold rounded-lg transition-colors">
+                    Details
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                  </a>
+                  <!-- Quick Mark Departed: shown only for confirmed bookings checked in today or earlier -->
+                  {% if booking.status == 'confirmed' and booking.check_in <= today %}
+                    <form method="POST" action="{% url 'staff_panel:booking_quick_action' booking.id %}" class="inline">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="mark_departed">
+                      <input type="hidden" name="return_url" value="{{ request.get_full_path }}">
+                      <button
+                        type="submit"
+                        data-confirm="Mark {{ booking.guest.name }} as DEPARTED from Room {{ booking.room.room_number }}? This frees the room immediately."
+                        class="inline-flex items-center gap-1 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold rounded-lg transition-colors border-0 cursor-pointer">
+                        Departed
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="9" class="py-8 text-center text-slate-500 text-sm">
+                No bookings found matching the selected criteria.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination Footer -->
+    {% if page_obj.has_other_pages %}
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
+        <div>
+          Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} ({{ page_obj.paginator.count }} total bookings)
+        </div>
+        <div class="flex items-center gap-2">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&guest_name={{ guest_name }}&phone={{ phone }}&status={{ status }}&check_in_from={{ check_in_from }}&check_in_to={{ check_in_to }}&overdue={{ overdue }}" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg hover:bg-slate-100 font-semibold text-slate-700">Previous</a>
+          {% endif %}
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&guest_name={{ guest_name }}&phone={{ phone }}&status={{ status }}&check_in_from={{ check_in_from }}&check_in_to={{ check_in_to }}&overdue={{ overdue }}" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg hover:bg-slate-100 font-semibold text-slate-700">Next</a>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

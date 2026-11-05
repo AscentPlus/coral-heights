@@ -1,0 +1,183 @@
+{% extends 'staff_panel/base.html' %}
+
+{% block title %}Nearby Attractions — Staff Portal{% endblock %}
+{% block header_title %}Nearby Tourist Attractions{% endblock %}
+
+{% block content %}
+<div class="space-y-8 max-w-7xl mx-auto">
+
+  <!-- Header Breadcrumb & Actions -->
+  <div class="flex items-center justify-between flex-wrap gap-4 border-b border-slate-200 pb-5">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
+        <a href="{% url 'staff_panel:website' %}" class="hover:text-teal-900 transition-colors">Website Content</a>
+        <span>&rarr;</span>
+        <span class="text-teal-950 font-bold">Nearby Attractions</span>
+      </div>
+      <h3 class="font-serif font-bold text-2xl sm:text-3xl text-teal-950">Local Tourist Attractions</h3>
+      <p class="text-xs text-slate-500 mt-1">Manage local tourist attractions, distance, descriptions and photos.</p>
+    </div>
+
+    <div>
+      {% if edit_attraction %}
+        <a href="{% url 'staff_panel:website_attractions' %}" class="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold rounded-xl transition-all inline-flex items-center gap-1.5">
+          &larr; Cancel Editing
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+    <!-- Left: Existing Attractions Table -->
+    <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <h4 class="font-serif font-bold text-xl text-teal-950">Configured Attractions</h4>
+        <span class="px-3 py-1 bg-amber-50 text-amber-800 rounded-full text-xs font-bold">{{ attractions|length }} Total</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-sm">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+              <th class="py-3 px-3">Attraction</th>
+              <th class="py-3 px-3 text-center">Distance</th>
+              <th class="py-3 px-3 text-center">Order</th>
+              <th class="py-3 px-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for attraction in attractions %}
+              <tr class="hover:bg-slate-50/80 transition-colors {% if edit_attraction and edit_attraction.id == attraction.id %}bg-amber-50/50{% endif %}">
+                <td class="py-3.5 px-3">
+                  <div class="flex items-center gap-3">
+                    {% if attraction.display_image_url %}
+                      <img src="{{ attraction.display_image_url }}" alt="{{ attraction.name }}" class="w-12 h-10 object-cover rounded-lg border border-slate-200 shadow-xs flex-shrink-0">
+                    {% else %}
+                      <div class="w-12 h-10 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 text-xs flex-shrink-0">No img</div>
+                    {% endif %}
+                    <div>
+                      <p class="font-bold text-slate-900 leading-tight">{{ attraction.name }}</p>
+                      <p class="text-[11px] text-slate-500 line-clamp-1 max-w-xs">{{ attraction.description }}</p>
+                    </div>
+                  </div>
+                </td>
+
+                <td class="py-3.5 px-3 text-center">
+                  <span class="px-2.5 py-1 bg-gold/10 text-amber-900 border border-gold/20 font-bold text-xs rounded-full">
+                    {{ attraction.distance_label }}
+                  </span>
+                </td>
+
+                <td class="py-3.5 px-3 text-center font-mono text-xs text-slate-600">
+                  {{ attraction.display_order }}
+                </td>
+
+                <td class="py-3.5 px-3 text-right">
+                  <div class="flex items-center justify-end gap-2">
+                    <a href="?edit={{ attraction.id }}" class="px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-900 text-xs font-bold rounded-lg transition-colors">
+                      Edit
+                    </a>
+
+                    <form method="POST" action="{% url 'staff_panel:website_attraction_delete' attraction.id %}" class="inline">
+                      {% csrf_token %}
+                      <button type="submit" data-confirm="Are you sure you want to delete attraction '{{ attraction.name }}'?" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg transition-colors border-0 cursor-pointer">
+                        Delete
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="4" class="py-8 text-center text-slate-500 text-sm">
+                  No attractions configured yet.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Right: Create / Edit Form Card -->
+    <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5 sticky top-24">
+      <div>
+        <h4 class="font-serif font-bold text-xl text-teal-950">
+          {% if edit_attraction %}Edit Attraction{% else %}Add New Attraction{% endif %}
+        </h4>
+        <p class="text-xs text-slate-500 mt-0.5">
+          {% if edit_attraction %}Update existing attraction details.{% else %}Add a new nearby tourist spot to showcase.{% endif %}
+        </p>
+      </div>
+
+      <form method="POST" enctype="multipart/form-data" class="space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="{% if edit_attraction %}edit{% else %}create{% endif %}">
+        {% if edit_attraction %}
+          <input type="hidden" name="attraction_id" value="{{ edit_attraction.id }}">
+        {% endif %}
+
+        {% if form.non_field_errors %}
+          <div class="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-xl">
+            {{ form.non_field_errors.0 }}
+          </div>
+        {% endif %}
+
+        <div>
+          <label for="{{ form.name.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Attraction Name *</label>
+          {{ form.name }}
+          {% if form.name.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.name.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="{{ form.distance_label.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Distance *</label>
+            {{ form.distance_label }}
+            {% if form.distance_label.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.distance_label.errors.0 }}</p>{% endif %}
+          </div>
+
+          <div>
+            <label for="{{ form.display_order.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Display Order</label>
+            {{ form.display_order }}
+            {% if form.display_order.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.display_order.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div>
+          <label for="{{ form.description.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Description *</label>
+          {{ form.description }}
+          {% if form.description.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.description.errors.0 }}</p>{% endif %}
+        </div>
+
+        <!-- Photo Upload Section -->
+        <div class="border-t border-slate-100 pt-3 space-y-3">
+          <label for="{{ form.image.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase">Upload Attraction Photo</label>
+          {{ form.image }}
+          {% if form.image.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.image.errors.0 }}</p>{% endif %}
+
+          {% if edit_attraction and edit_attraction.image %}
+            <div class="flex items-center gap-2 text-xs text-slate-500">
+              <span>Current file:</span>
+              <a href="{{ edit_attraction.image.url }}" target="_blank" class="text-teal-800 font-bold underline truncate max-w-xs">{{ edit_attraction.image.name }}</a>
+            </div>
+          {% endif %}
+
+          <div>
+            <label for="{{ form.image_url.id_for_label }}" class="block text-xs font-medium text-slate-500 mb-1">Or External Fallback URL</label>
+            {{ form.image_url }}
+          </div>
+        </div>
+
+        <div class="pt-2">
+          <button type="submit" class="w-full py-3 bg-gold hover:bg-gold-light text-teal-950 font-bold text-sm rounded-xl transition-all shadow-sm cursor-pointer border-0">
+            {% if edit_attraction %}Save Attraction Changes{% else %}Add Attraction{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

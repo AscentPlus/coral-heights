@@ -1,0 +1,392 @@
+/* ═══════════════════════════════════════════════════════════
+   Hotel Coral Heights — Main Custom CSS
+   Self-hosted fonts + all extracted custom styles
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Self-hosted fonts ───────────────────────────────────── */
+
+/* DM Serif Display — Regular (latin-ext) */
+@font-face {
+  font-family: 'DM Serif Display';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/dm-serif-display-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* DM Serif Display — Regular (latin) */
+@font-face {
+  font-family: 'DM Serif Display';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/dm-serif-display-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* DM Serif Display — Italic (latin-ext) */
+@font-face {
+  font-family: 'DM Serif Display';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/dm-serif-display-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* DM Serif Display — Italic (latin) */
+@font-face {
+  font-family: 'DM Serif Display';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/dm-serif-display-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Inter — Light to Bold (latin-ext) */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('../fonts/inter-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Inter — Light to Bold (latin) */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('../fonts/inter-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+
+/* ── Base body styles ────────────────────────────────────── */
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: #faf6f0;
+  color: #1a1a1a;
+  overflow-x: hidden;
+}
+
+body.overflow-hidden {
+  overflow: hidden !important;
+  touch-action: none;
+}
+
+[x-cloak] {
+  display: none !important;
+}
+
+/* ── Reveal-on-scroll animations ─────────────────────────── */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.7s cubic-bezier(.22,1,.36,1), transform 0.7s cubic-bezier(.22,1,.36,1);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-child { opacity: 0; transform: translateY(24px); transition: opacity .55s cubic-bezier(.22,1,.36,1), transform .55s cubic-bezier(.22,1,.36,1); }
+.reveal-child.visible { opacity: 1; transform: translateY(0); }
+
+/* ── Parallax ────────────────────────────────────────────── */
+
+.parallax-window {
+  position: relative;
+  overflow: hidden;
+}
+.parallax-bg {
+  position: absolute;
+  top: -20%;
+  left: 0;
+  width: 100%;
+  height: 140%;
+  object-fit: cover;
+  will-change: transform;
+  pointer-events: none;
+}
+
+.parallax-fixed {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
+}
+
+/* ── Horizontal scroll row ───────────────────────────────── */
+
+.scroll-row {
+  display: flex;
+  gap: 1.25rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: #c8a45e transparent;
+}
+.scroll-row::-webkit-scrollbar { height: 6px; }
+.scroll-row::-webkit-scrollbar-track { background: transparent; }
+.scroll-row::-webkit-scrollbar-thumb { background: #c8a45e; border-radius: 99px; }
+.scroll-row > * { scroll-snap-align: start; flex: 0 0 auto; }
+
+/* ── Navbar solid state ──────────────────────────────────── */
+
+.nav-solid {
+  background: rgba(255,255,255,.98) !important;
+  box-shadow: 0 4px 30px rgba(10,46,46,.12);
+  backdrop-filter: blur(12px);
+}
+.nav-solid .nav-link-item,
+.nav-solid .nav-brand { color: #0a2e2e !important; }
+.nav-solid .nav-phone { color: #0a2e2e !important; }
+
+.nav-link-item { position: relative; }
+.nav-link-item::after {
+  content: '';
+  position: absolute;
+  left: 0; bottom: -4px;
+  width: 0; height: 2px;
+  background: #c8a45e;
+  transition: width .3s ease;
+}
+.nav-link-item:hover::after { width: 100%; }
+
+/* ── Availability result panel ───────────────────────────── */
+
+.result-panel {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height .5s cubic-bezier(.22,1,.36,1), opacity .4s ease, padding .4s ease;
+}
+.result-panel.open {
+  max-height: 600px;
+  opacity: 1;
+}
+
+/* ── Card hover effects ──────────────────────────────────── */
+
+.room-card {
+  transition: transform .35s cubic-bezier(.22,1,.36,1), box-shadow .35s ease;
+}
+.room-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 50px rgba(10,46,46,.12);
+}
+
+.facility-card {
+  transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
+}
+.facility-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(10,46,46,.10);
+  border-color: #c8a45e;
+}
+
+.attraction-card {
+  transition: transform .3s ease, box-shadow .3s ease;
+}
+.attraction-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(10,46,46,.10);
+}
+
+/* ── WhatsApp pulse ───────────────────────────────────── */
+@keyframes wa-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37,211,102,.5); }
+  50% { box-shadow: 0 0 0 14px rgba(37,211,102,0); }
+}
+.wa-btn { animation: wa-pulse 2.5s infinite; }
+
+/* ── CTA button shimmer ───────────────────────────────── */
+.btn-gold {
+  position: relative;
+  overflow: hidden;
+}
+.btn-gold::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent);
+  transition: left .6s ease;
+}
+.btn-gold:hover::before { left: 100%; }
+
+/* ── Stepper buttons ──────────────────────────────────── */
+.stepper-btn {
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  border: 1.5px solid #c8a45e;
+  color: #c8a45e;
+  background: transparent;
+  font-size: 1.1rem; font-weight: 600;
+  cursor: pointer;
+  transition: background .2s, color .2s;
+}
+.stepper-btn:hover { background: #c8a45e; color: #fff; }
+
+/* ── Testimonial quote mark ────────────────────────────── */
+.quote-mark {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 5rem;
+  line-height: 1;
+  color: #c8a45e;
+  opacity: .25;
+  position: absolute;
+  top: -8px; left: 12px;
+}
+
+/* ── Date input styling ───────────────────────────────── */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(.35) sepia(1) saturate(3) hue-rotate(130deg);
+  cursor: pointer;
+}
+
+/* ── Select dropdown arrow icon (CSP compliant) ───────── */
+.select-arrow {
+  background-image: url("data:image/svg+xml;utf8,<svg fill='%23999' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 18px;
+}
+
+/* ── Section Background Images (CSP Compliant) ────────────── */
+.hero-bg {
+  background-image: url('https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=1920&q=85&auto=format&fit=crop');
+}
+.heritage-bg {
+  background-image: url('https://images.unsplash.com/photo-1544644181-1484b3fdfc62?w=1920&q=85&auto=format&fit=crop');
+}
+.restaurant-bg {
+  background-image: url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1920&q=85&auto=format&fit=crop');
+}
+
+/* ── Logo Filters (CSP & Pure CSS) ───────────────────────── */
+.logo-white {
+  filter: brightness(0) invert(1) !important;
+}
+
+.nav-brand img {
+  filter: brightness(0) invert(1);
+  transition: filter 0.3s ease;
+}
+.nav-solid .nav-brand img {
+  filter: none !important;
+}
+
+/* ── Subpage Navigation Styles (e.g. Booking Page) ────────── */
+body.subpage nav {
+  background: #ffffff !important;
+  box-shadow: 0 2px 16px rgba(10, 46, 46, 0.08) !important;
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(200, 164, 94, 0.25) !important;
+}
+body.subpage nav .nav-brand img {
+  filter: none !important;
+}
+body.subpage nav .nav-link-item {
+  color: #0a2e2e !important;
+  font-weight: 500;
+}
+body.subpage nav .nav-link-item:hover {
+  color: #c8a45e !important;
+}
+body.subpage nav .nav-phone {
+  color: #0a2e2e !important;
+}
+body.subpage .nav-solid {
+  background: #ffffff !important;
+  box-shadow: 0 2px 16px rgba(10, 46, 46, 0.08) !important;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.9) !important;
+}
+
+/* ── Booking Stepper & Compact Form Styles ────────────────── */
+.booking-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.booking-step-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+.booking-step-circle {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+.booking-step-line {
+  flex: 1 1 auto;
+  height: 2px;
+  background: #e2e8f0;
+  margin: 0 0.6rem;
+  min-width: 0.75rem;
+}
+
+.step-circle-active {
+  background: #c8a45e !important;
+  color: #0a2e2e !important;
+  box-shadow: 0 0 0 3px rgba(200, 164, 94, 0.35) !important;
+  font-weight: 700 !important;
+}
+.step-circle-done {
+  background: #059669 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+.step-circle-pending {
+  background: #ffffff !important;
+  color: #475569 !important;
+  border: 2px solid #cbd5e1 !important;
+  font-weight: 700 !important;
+}
+.step-text-active {
+  color: #0a2e2e !important;
+  font-weight: 700 !important;
+}
+.step-text-done {
+  color: #047857 !important;
+  font-weight: 600 !important;
+}
+.step-text-pending {
+  color: #64748b !important;
+  font-weight: 500 !important;
+}
+
+/* Confirmed Booking Step Action Buttons */
+.confirmed-actions-row {
+  display: flex !important;
+  gap: 1.25rem !important;
+}
+
+@media (max-width: 639px) {
+  .confirmed-actions-row {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+}
+
+
+

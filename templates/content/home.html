@@ -1,0 +1,743 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+  <!-- Hero Section -->
+  <section
+    id="hero"
+    class="relative min-h-screen flex items-center justify-center overflow-hidden parallax-fixed hero-bg"
+    role="img"
+    aria-label="Kerala backwaters with traditional houseboat at sunset — placeholder for Hotel Coral Heights exterior"
+    data-placeholder="true">
+    
+    <div class="absolute inset-0 bg-gradient-to-b from-teal-950/75 via-teal-950/50 to-teal-950/85"></div>
+
+    <div class="relative z-10 text-center px-4 max-w-4xl mx-auto py-32 md:py-40">
+      <p class="text-gold font-sans text-sm md:text-base tracking-[.25em] uppercase mb-6 reveal">Ambalapuzha · Alappuzha · Kerala</p>
+      <h1 class="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white leading-tight mb-6 reveal">
+        Feel Happy. Feel Safe.<br/>
+        <span class="text-gold">At the Heights.</span>
+      </h1>
+      <p class="text-white/85 text-base md:text-lg max-w-2xl mx-auto leading-relaxed mb-10 reveal">
+        Hospitality combines with modern luxury, keeping the traditional flavour of Kerala as an underlying standard.
+      </p>
+      <a href="#availability" class="btn-gold inline-flex items-center gap-2 px-8 py-4 bg-gold text-teal-950 font-semibold rounded text-base tracking-wide hover:bg-gold-light transition-all shadow-xl reveal">
+        Check Availability
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+      </a>
+    </div>
+    
+    <div class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-cream to-transparent"></div>
+  </section>
+  
+  <!-- Check Availability Widget -->
+  <section id="availability" class="relative z-20 -mt-20 md:-mt-24 px-4">
+    <div
+      x-data="availabilityWidget"
+      class="max-w-5xl mx-auto bg-white rounded-2xl shadow-2xl shadow-teal-950/15 overflow-hidden border border-teal-900/10"
+    >
+      <!-- Widget header -->
+      <div class="bg-teal-900 px-6 md:px-10 py-5 flex items-center justify-between">
+        <div>
+          <h2 class="font-serif text-xl md:text-2xl text-white">Check Availability</h2>
+          <p class="text-white/70 text-xs md:text-sm mt-1">Find the perfect room for your stay</p>
+        </div>        
+      </div>
+
+      <!-- Form fields -->
+      <div class="px-6 md:px-10 py-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <!-- Check-in -->
+          <div>
+            <label for="checkin" class="block text-xs font-semibold text-teal-800 uppercase tracking-wider mb-2">Check-in</label>
+            <input
+              :value="checkin"
+              @input="setCheckin"
+              type="date"
+              id="checkin"
+              class="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+            />
+          </div>
+          <!-- Check-out -->
+          <div>
+            <label for="checkout" class="block text-xs font-semibold text-teal-800 uppercase tracking-wider mb-2">Check-out</label>
+            <input
+              :value="checkout"
+              @input="setCheckout"
+              type="date"
+              id="checkout"
+              class="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+            />
+          </div>
+          <!-- Room type -->
+          <div>
+            <label for="room-type" class="block text-xs font-semibold text-teal-800 uppercase tracking-wider mb-2">Room Type</label>
+            <select
+              @change="onRoomTypeChange"
+              id="room-type"
+              class="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all appearance-none select-arrow"
+            >
+              <option value="" selected>-- Select Room Type --</option>
+              {% for rt in room_types %}
+                <option value="{{ rt.slug }}" data-max-occupancy="{{ rt.max_occupancy }}">{{ rt.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <!-- Guests -->
+          <div>
+            <label class="block text-xs font-semibold text-teal-800 uppercase tracking-wider mb-2">Guests</label>
+            <div class="flex flex-col gap-2">
+              <!-- Adults -->
+              <div class="flex items-center justify-between bg-gray-50/80 px-3 py-1.5 rounded-lg border border-gray-100">
+                <span class="text-xs font-medium text-gray-600">Adults</span>
+                <div class="flex items-center gap-2">
+                  <button @click="decrementAdults" class="stepper-btn" aria-label="Decrease adults">−</button>
+                  <span class="text-sm font-semibold w-5 text-center text-teal-950" x-text="adults"></span>
+                  <button @click="incrementAdults" class="stepper-btn" aria-label="Increase adults">+</button>
+                </div>
+              </div>
+              <!-- Kids -->
+              <div class="flex items-center justify-between bg-gray-50/80 px-3 py-1.5 rounded-lg border border-gray-100">
+                <span class="text-xs font-medium text-gray-600">Kids</span>
+                <div class="flex items-center gap-2">
+                  <button @click="decrementChildren" class="stepper-btn" aria-label="Decrease children">−</button>
+                  <span class="text-sm font-semibold w-5 text-center text-teal-950" x-text="children"></span>
+                  <button @click="incrementChildren" class="stepper-btn" aria-label="Increase children">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Check button -->
+        <div class="mt-8 flex justify-center">
+          <button
+            @click="checkAvailability"
+            :disabled="isLoading"
+            class="btn-gold px-10 py-4 bg-gold text-teal-950 font-bold rounded-lg text-base tracking-wide hover:bg-gold-light transition-all focus:outline-none focus:ring-4 focus:ring-gold/30 shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+            id="btn-check-availability"
+          >
+            <span x-show="isNotLoading">Check Availability</span>
+            <span x-show="isLoading" x-cloak class="inline-flex items-center gap-2">
+              <svg class="animate-spin h-5 w-5 text-teal-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Checking...
+            </span>
+          </button>
+        </div>
+
+        <!-- Inline Error Message -->
+        <template x-if="hasErrorMessage">
+          <div class="mt-6 p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm flex items-center gap-3">
+            <svg class="w-5 h-5 text-rose-600 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span x-text="errorMessage"></span>
+          </div>
+        </template>
+
+        <!-- Results panel -->
+        <div
+          :class="resultsClasses"
+          class="result-panel"
+        >
+          <template x-if="showResults">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 bg-cream rounded-xl p-6 md:p-8 border border-gold/20 shadow-inner">
+              <div>
+                <h3 class="font-serif text-xl text-teal-900" x-text="selectedRoomName"></h3>
+                <p class="text-gray-600 text-sm mt-1">
+                  <span x-text="checkinText"></span> to <span x-text="checkoutText"></span>
+                  · <span x-text="adults"></span> adult<span x-show="hasMultipleAdults">s</span><span x-show="hasChildren">, <span x-text="children"></span> child<span x-show="hasMultipleChildren">ren</span></span>
+                </p>
+              </div>
+              <div class="flex items-center gap-6">
+                <div class="text-right">
+                  <p class="text-3xl font-serif text-teal-950">₹<span x-text="formattedPrice"></span></p>
+                  <p class="text-xs text-gray-500">per night + taxes</p>
+                </div>
+                <span :class="availabilityBadgeClasses" x-text="availabilityText"></span>
+              </div>
+              <button
+                @click="reserveNow"
+                :disabled="isReserveDisabled"
+                :class="reserveButtonClasses"
+                id="btn-reserve-now"
+                title="Reserve this room"
+              >
+                Reserve Now →
+              </button>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Rooms & Suites Section (Database Backed) -->
+  <section id="rooms" x-data class="py-24 md:py-32 px-4 bg-cream">
+    <div class="max-w-7xl mx-auto">
+      <!-- Section header -->
+      <div class="text-center mb-16 reveal">
+        <p class="text-gold text-sm font-semibold tracking-[.2em] uppercase mb-3">Accommodation</p>
+        <h2 class="font-serif text-3xl md:text-4xl lg:text-5xl text-teal-950">Rooms &amp; Suites</h2>
+        <div class="w-16 h-0.5 bg-gold mx-auto mt-5"></div>
+      </div>
+
+      <!-- Room cards grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
+        {% for room in room_types %}
+          <article class="room-card bg-white rounded-2xl overflow-hidden shadow-lg shadow-teal-950/5 reveal-child" id="room-{{ room.slug }}" data-room-slug="{{ room.slug }}" x-data="roomCard">
+            <div class="relative overflow-hidden aspect-[4/3]">
+              <img
+                src="{{ room.display_image_url }}"
+                alt="{{ room.name }} — Hotel Coral Heights"
+                class="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                loading="lazy"
+              />
+              <span class="absolute top-4 right-4 bg-teal-900/90 text-gold text-sm font-semibold px-4 py-1.5 rounded-full backdrop-blur-sm shadow-md">
+                From ₹{{ room.base_price_per_night|floatformat:"0" }}/night
+              </span>
+            </div>
+            <div class="p-6 md:p-7">
+              <h3 class="font-serif text-2xl text-teal-950 mb-2">{{ room.name }}</h3>
+              <p class="text-gray-600 text-sm leading-relaxed mb-5">{{ room.short_description }}</p>
+              <!-- Amenity icons -->
+              <div class="flex items-center gap-5 mb-6 text-teal-700">
+                <div class="flex items-center gap-1.5 text-xs" title="Max occupancy: {{ room.max_occupancy }}">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                  <span>1–{{ room.max_occupancy }}</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-xs" title="Free WiFi">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+                  <span>WiFi</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-xs" title="{{ room.bed_type }} Bed">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4v16"/><path d="M22 4v16"/><path d="M2 12h20"/><path d="M2 8h20"/><rect x="6" y="4" width="4" height="4" rx="1"/><rect x="14" y="4" width="4" height="4" rx="1"/></svg>
+                  <span>{{ room.bed_type }}</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-xs" title="Breakfast Included">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><path d="M6 1v3"/><path d="M10 1v3"/><path d="M14 1v3"/></svg>
+                  <span>B'fast</span>
+                </div>
+              </div>
+              <!-- Actions -->
+              <div class="flex items-center gap-3">
+                <button @click="openDetails" class="flex-1 text-center py-2.5 border-2 border-teal-800 text-teal-800 text-sm font-semibold rounded-lg hover:bg-teal-800 hover:text-white transition-all focus:outline-none focus:ring-2 focus:ring-teal-600/30">
+                  View Details
+                </button>
+                <a href="#availability" class="flex-1 text-center py-2.5 bg-gold text-teal-950 text-sm font-semibold rounded-lg hover:bg-gold-light transition-all focus:outline-none focus:ring-2 focus:ring-gold/30">
+                  Check Availability
+                </a>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Room Details Modal -->
+  <div
+    x-data="roomDetailsModal"
+    x-show="isOpen"
+    x-cloak
+    @keydown.escape.window="closeModal"
+    class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 sm:p-6"
+    style="display: none;"
+  >
+    <!-- Backdrop -->
+    <div
+      @click="closeModal"
+      x-show="isOpen"
+      x-transition:enter="transition ease-out duration-300"
+      x-transition:enter-start="opacity-0"
+      x-transition:enter-end="opacity-100"
+      x-transition:leave="transition ease-in duration-200"
+      x-transition:leave-start="opacity-100"
+      x-transition:leave-end="opacity-0"
+      class="fixed inset-0 bg-teal-950/80 backdrop-blur-sm"
+    ></div>
+
+    <!-- Modal Card -->
+    <div
+      x-show="isOpen"
+      x-transition:enter="transition ease-out duration-300"
+      x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+      x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+      x-transition:leave="transition ease-in duration-200"
+      x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+      x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+      class="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-teal-900/10 z-10 flex flex-col max-h-[90vh]"
+    >
+      <!-- Modal Header -->
+      <div class="bg-teal-900 px-6 py-4 flex items-center justify-between text-white border-b border-gold/20 shrink-0">
+        <div>
+          <p class="text-gold text-xs font-semibold uppercase tracking-wider">Hotel Coral Heights</p>
+          <h3 class="font-serif text-xl md:text-2xl text-white mt-0.5">Room Details</h3>
+        </div>
+        <button
+          @click="closeModal"
+          type="button"
+          class="w-9 h-9 flex-shrink-0 flex items-center justify-center text-gold hover:text-white bg-teal-950/60 hover:bg-gold/20 rounded-full transition-all focus:outline-none border border-gold/40 shadow-sm"
+          aria-label="Close modal"
+          title="Close modal"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="#c8a45e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Scrollable Modal Body -->
+      <div class="overflow-y-auto flex-1">
+        {% for room in room_types %}
+          <div data-room-details-slug="{{ room.slug }}" x-data="roomDetailsItem" x-show="isActive" x-cloak>
+            <!-- Room Image -->
+            <div class="relative w-full aspect-[16/9] overflow-hidden">
+              <img
+                src="{{ room.display_image_url }}"
+                alt="{{ room.name }} — Hotel Coral Heights"
+                class="w-full h-full object-cover"
+              />
+              <span class="absolute top-4 right-4 bg-teal-900/90 text-gold text-sm font-semibold px-4 py-1.5 rounded-full backdrop-blur-sm shadow-md">
+                From ₹{{ room.base_price_per_night|floatformat:"0" }}/night
+              </span>
+            </div>
+
+            <!-- Room Info -->
+            <div class="p-6 md:p-8 space-y-5">
+              <h3 class="font-serif text-2xl md:text-3xl text-teal-950">{{ room.name }}</h3>
+
+              <p class="text-gray-600 text-sm md:text-base leading-relaxed">
+                {% if room.long_description %}{{ room.long_description }}{% else %}{{ room.short_description }}{% endif %}
+              </p>
+
+              <!-- Amenity Row -->
+              <div class="flex flex-wrap items-center gap-4 pt-2">
+                <div class="flex items-center gap-2 bg-cream px-3.5 py-2 rounded-lg border border-gold/15 text-teal-800 text-xs font-medium" title="Max occupancy: {{ room.max_occupancy }}">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                  <span>1–{{ room.max_occupancy }} Guests</span>
+                </div>
+                <div class="flex items-center gap-2 bg-cream px-3.5 py-2 rounded-lg border border-gold/15 text-teal-800 text-xs font-medium" title="Free WiFi">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+                  <span>Free WiFi</span>
+                </div>
+                <div class="flex items-center gap-2 bg-cream px-3.5 py-2 rounded-lg border border-gold/15 text-teal-800 text-xs font-medium" title="{{ room.bed_type }} Bed">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M2 4v16"/><path d="M22 4v16"/><path d="M2 12h20"/><path d="M2 8h20"/><rect x="6" y="4" width="4" height="4" rx="1"/><rect x="14" y="4" width="4" height="4" rx="1"/></svg>
+                  <span>{{ room.bed_type }} Bed</span>
+                </div>
+                <div class="flex items-center gap-2 bg-cream px-3.5 py-2 rounded-lg border border-gold/15 text-teal-800 text-xs font-medium" title="Breakfast Included">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><path d="M6 1v3"/><path d="M10 1v3"/><path d="M14 1v3"/></svg>
+                  <span>Breakfast Included</span>
+                </div>
+              </div>
+
+              <!-- Action -->
+              <div class="pt-3 flex items-center gap-3">
+                <a href="#availability" @click="closeModal" class="flex-1 text-center py-3 bg-gold text-teal-950 font-bold rounded-lg hover:bg-gold-light transition-all focus:outline-none focus:ring-2 focus:ring-gold/30 shadow-md">
+                  Check Availability
+                </a>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  
+  <!-- Parallax Heritage Banner -->
+  <section
+    class="relative py-28 md:py-36 overflow-hidden parallax-fixed my-6 heritage-bg"
+    role="img"
+    aria-label="Kerala traditional architecture and coconut palms background — parallax banner"
+    data-placeholder="true">
+    
+    <div class="absolute inset-0 bg-gradient-to-r from-teal-950/90 via-teal-950/75 to-teal-950/90"></div>
+    <div class="relative z-10 max-w-4xl mx-auto px-4 text-center reveal">
+      <p class="text-gold font-sans text-xs md:text-sm tracking-[.3em] uppercase mb-4">Timeless Heritage · Unmatched Comfort</p>
+      <h2 class="font-serif text-3xl sm:text-4xl md:text-5xl text-white leading-tight mb-6">
+        "Experience the Soul of Kerala’s Hospitality in Ambalapuzha"
+      </h2>
+      <div class="w-20 h-0.5 bg-gold mx-auto mb-8"></div>
+      <p class="text-white/80 text-sm md:text-base leading-relaxed max-w-2xl mx-auto mb-8">
+        Located steps away from the historic Sree Krishna Temple and minutes from the serene backwater docks of Alleppey.
+      </p>
+      <a href="#availability" class="btn-gold inline-flex items-center gap-2 px-8 py-3.5 bg-gold text-teal-950 font-bold rounded-lg tracking-wide hover:bg-gold-light transition-all">
+        Book Your Escape Today
+      </a>
+    </div>
+  </section>
+  
+  <!-- Facilities Section (Database Backed) -->
+  <section id="facilities" class="py-24 md:py-32 px-4 bg-white">
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-16 reveal">
+        <p class="text-gold text-sm font-semibold tracking-[.2em] uppercase mb-3">What We Offer</p>
+        <h2 class="font-serif text-3xl md:text-4xl lg:text-5xl text-teal-950">Hotel Facilities</h2>
+        <div class="w-16 h-0.5 bg-gold mx-auto mt-5"></div>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6">
+        {% for facility in facilities %}
+          <div class="facility-card bg-cream rounded-xl border border-transparent p-6 md:p-8 text-center reveal-child">
+            <div class="w-14 h-14 mx-auto mb-4 bg-teal-900/10 rounded-xl flex items-center justify-center text-teal-800">
+              <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true">
+                {{ facility.icon_svg_d|safe }}
+              </svg>
+            </div>
+            <h3 class="font-semibold text-teal-950 text-sm">{{ facility.name }}</h3>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  
+  <!-- Restaurant Parallax Banner -->
+  <section
+    id="restaurant"
+    class="relative min-h-[600px] md:min-h-[680px] flex items-center justify-center overflow-hidden parallax-fixed restaurant-bg"
+    role="img"
+    aria-label="Beautifully plated Kerala cuisine with traditional spices and coconut — placeholder for Coral Heights restaurant"
+    data-placeholder="true"
+  >
+    <div class="absolute inset-0 bg-gradient-to-b from-teal-950/80 via-teal-950/70 to-teal-950/90"></div>
+
+    <div class="relative z-10 max-w-2xl mx-auto px-4 text-center reveal">
+      <p class="text-gold text-sm font-semibold tracking-[.2em] uppercase mb-4">Dine With Us</p>
+      <h2 class="font-serif text-3xl md:text-4xl lg:text-5xl text-white mb-6 leading-snug">Heights of<br/>Real Taste.</h2>
+      <div class="w-20 h-0.5 bg-gold mx-auto mb-8"></div>
+      <p class="text-white/80 leading-relaxed mb-10 text-base md:text-lg">
+        We cook food that melts your heart — a variety of global and authentic Kerala cuisines served with warmth.
+        From traditional sadya to continental favourites, every dish is crafted with fresh local ingredients and generations of culinary heritage.
+      </p>
+      <a href="#availability" class="btn-gold inline-flex items-center gap-2 px-8 py-3.5 bg-gold text-teal-950 font-bold rounded-lg tracking-wide hover:bg-gold-light transition-all shadow-md">
+        Explore the Restaurant
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </section>
+  
+  <!-- Attractions Section (Database Backed) -->
+  <section id="attractions" class="py-24 md:py-32 px-4 bg-white">
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-16 reveal">
+        <p class="text-gold text-sm font-semibold tracking-[.2em] uppercase mb-3">Explore Kerala</p>
+        <h2 class="font-serif text-3xl md:text-4xl lg:text-5xl text-teal-950">Nearby Attractions</h2>
+        <div class="w-16 h-0.5 bg-gold mx-auto mt-5"></div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {% for attraction in attractions %}
+          <article class="attraction-card bg-cream rounded-2xl overflow-hidden shadow-md reveal-child">
+            <img
+              src="{{ attraction.display_image_url }}"
+              alt="{{ attraction.name }}"
+              class="w-full aspect-[3/2] object-cover"
+              loading="lazy"
+            />
+            <div class="p-5">
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="font-serif text-lg text-teal-950">{{ attraction.name }}</h3>
+                <span class="text-xs font-semibold text-gold bg-gold/10 px-2.5 py-1 rounded-full border border-gold/20">{{ attraction.distance_label }}</span>
+              </div>
+              <p class="text-gray-600 text-sm">{{ attraction.description }}</p>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Catering & Event Enquiry Section -->
+  <section id="enquiry" class="py-24 md:py-32 px-4 bg-cream border-t border-teal-900/5">
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-12 reveal">
+        <p class="text-gold text-sm font-semibold tracking-[.2em] uppercase mb-3">Celebrations &amp; Gatherings</p>
+        <h2 class="font-serif text-3xl md:text-4xl lg:text-5xl text-teal-950">Plan Your Event With Us</h2>
+        <div class="w-16 h-0.5 bg-gold mx-auto mt-5"></div>
+        <p class="text-gray-600 text-sm md:text-base max-w-2xl mx-auto mt-6 leading-relaxed">
+          From intimate birthday parties to grand weddings and corporate events — we offer custom catering and venue arrangements. Open to all guests, no registration required.
+        </p>
+      </div>
+
+      <div
+        x-data="enquiryForm"
+        class="max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl shadow-teal-950/10 overflow-hidden border border-teal-900/10 p-6 sm:p-10 md:p-12 reveal"
+      >
+        <!-- Success State Confirmation Message -->
+        <template x-if="isSubmitted">
+          <div class="text-center py-12 px-4 space-y-6">
+            <div class="w-20 h-20 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto shadow-inner">
+              <svg class="w-10 h-10 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 class="font-serif text-2xl md:text-3xl text-teal-950">Enquiry Submitted!</h3>
+            <p class="text-gray-600 max-w-md mx-auto text-sm md:text-base leading-relaxed">
+              Thank you for reaching out to Hotel Coral Heights. Our events team will review your details and contact you shortly to plan your event.
+            </p>
+            <div class="pt-2">
+              <button
+                type="button"
+                @click="resetForm"
+                class="px-6 py-2.5 bg-teal-900 text-white font-semibold text-sm rounded-lg hover:bg-teal-800 transition-all focus:outline-none focus:ring-2 focus:ring-teal-600/30 shadow-md"
+              >
+                Submit Another Enquiry
+              </button>
+            </div>
+          </div>
+        </template>
+
+        <!-- Form Submission State -->
+        <template x-if="isNotSubmitted">
+          <form id="enquiry-form" method="POST" action="{% url 'enquiries:submit' %}" @submit.prevent="submitForm" class="space-y-6" novalidate>
+            {% csrf_token %}
+
+            <!-- Non-field error alert -->
+            <template x-if="hasFieldError('non_field_errors')">
+              <div class="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm flex items-center gap-3">
+                <svg class="w-5 h-5 text-rose-600 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span x-text="getFieldError('non_field_errors')"></span>
+              </div>
+            </template>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <!-- Function Type -->
+              <div>
+                <label for="id_function_type" class="block text-xs font-semibold text-teal-800 uppercase tracking-wider mb-2">Event Type *</label>
+                <select
+                  name="function_type"
+                  id="id_function_type"
+                  class="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all appearance-none select-arrow"
+                  required
+                >
+                  <option value="" disabled selected>-- Select Event Type --</option>
+                  <option value="birthday">Birthday Party</option>
+                  <option value="wedding">Wedding / Reception</option>
+                  <option value="corporate">Corporate Event</option>
+                  <option value="other">Other Event</option>
+                </select>
+              </div>
+
+              <!-- Preferred Date -->
+              <div>
+                <label for="id_preferred_date" class="block text-xs font-semibold text-teal-800 uppercase tracking-wider mb-2">Preferred Date *</label>
+                <input
+                  type="date"
+                  name="preferred_date"
+                  id="id_preferred_date"
+                  class="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+                  required
+                />
+              </div>
+
+              <!-- Expected Guests -->
+              <div>
+                <label for="id_guest_count" class="block text-xs font-semibold text-teal-800 uppercase tracking-wider mb-2">Expected Guests *</label>
+                <input
+                  type="number"
+                  name="guest_count"
+                  id="id_guest_count"
+                  min="1"
+                  placeholder="e.g. 50"
+                  class="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Contact Name -->
+              <div>
+                <label for="id_contact_name" class="block text-xs font-semibold text-teal-800 uppercase tracking-wider mb-2">Your Name *</label>
+                <input
+                  type="text"
+                  name="contact_name"
+                  id="id_contact_name"
+                  placeholder="Full name"
+                  class="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+                  required
+                />
+              </div>
+
+              <!-- Contact Phone -->
+              <div>
+                <label for="id_contact_phone" class="block text-xs font-semibold text-teal-800 uppercase tracking-wider mb-2">Phone Number *</label>
+                <input
+                  type="tel"
+                  name="contact_phone"
+                  id="id_contact_phone"
+                  placeholder="10-digit mobile number"
+                  maxlength="10"
+                  @input="onPhoneInput"
+                  :class="hasFieldError('contact_phone') ? 'border-rose-500 bg-rose-50/20 focus:border-rose-500 focus:ring-rose-200' : 'border-gray-200 focus:border-gold focus:ring-gold/20'"
+                  class="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-all"
+                  required
+                />
+                <template x-if="hasFieldError('contact_phone')">
+                  <div class="text-xs text-rose-600 font-semibold mt-1.5 flex items-center gap-1">
+                    <svg class="w-4 h-4 text-rose-600 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span x-text="getFieldError('contact_phone')"></span>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- Menu Requirements -->
+            <div>
+              <label for="id_menu_requirements" class="block text-xs font-semibold text-teal-800 uppercase tracking-wider mb-2">Food / Menu Requirements</label>
+              <textarea
+                name="menu_requirements"
+                id="id_menu_requirements"
+                rows="3"
+                placeholder="Mention preferences like Sadya, Buffet, Veg/Non-veg preferences..."
+                class="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+              ></textarea>
+              <template x-if="hasFieldError('menu_requirements')">
+                <p class="text-xs text-rose-600 mt-1.5" x-text="getFieldError('menu_requirements')"></p>
+              </template>
+            </div>
+
+            <!-- Additional Notes -->
+            <div>
+              <label for="id_notes" class="block text-xs font-semibold text-teal-800 uppercase tracking-wider mb-2">Additional Notes</label>
+              <textarea
+                name="notes"
+                id="id_notes"
+                rows="3"
+                placeholder="Any special requests or details about timings, seating, etc."
+                class="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+              ></textarea>
+              <template x-if="hasFieldError('notes')">
+                <p class="text-xs text-rose-600 mt-1.5" x-text="getFieldError('notes')"></p>
+              </template>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="pt-4 flex justify-center">
+              <button
+                type="submit"
+                :disabled="isSubmitting"
+                class="btn-gold px-10 py-4 bg-gold text-teal-950 font-bold rounded-lg text-base tracking-wide hover:bg-gold-light transition-all focus:outline-none focus:ring-4 focus:ring-gold/30 shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+                id="btn-submit-enquiry"
+              >
+                <span x-show="isNotSubmitting">Submit Event Enquiry</span>
+                <span x-show="isSubmitting" x-cloak class="inline-flex items-center gap-2">
+                  <svg class="animate-spin h-5 w-5 text-teal-950" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Sending Enquiry...
+                </span>
+              </button>
+            </div>
+          </form>
+        </template>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials Section -->
+  <section id="testimonials" class="pt-20 px-4 bg-cream" style="padding-bottom: 4rem;">
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-16 reveal">
+        <p class="text-gold text-sm font-semibold tracking-[.2em] uppercase mb-3">Guest Voices</p>
+        <h2 class="font-serif text-3xl md:text-4xl lg:text-5xl text-teal-950">What Our Guests Say</h2>
+        <div class="w-16 h-0.5 bg-gold mx-auto mt-5"></div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Testimonial 1 -->
+        <div class="relative bg-white rounded-2xl p-8 shadow-md shadow-teal-950/5 reveal-child border border-teal-900/5">
+          <span class="quote-mark">"</span>
+          <div class="relative z-10">
+            <div class="flex gap-1 mb-4">
+              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            </div>
+            <p class="text-gray-600 text-sm leading-relaxed mb-6">
+              "The rooms are quite spacious and well maintained by the housekeeping team. Room service was very prompt. The front office team, especially the manager, were very polite and always greeted with a warm smile. Highly recommend for families and business travellers alike."
+            </p>
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-teal-800 rounded-full flex items-center justify-center text-white font-semibold text-sm">PN</div>
+              <div>
+                <p class="text-teal-950 font-semibold text-sm">Prajit Nair</p>
+                <p class="text-gray-400 text-xs">Guest Review</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Testimonial 2 -->
+        <div class="relative bg-white rounded-2xl p-8 shadow-md shadow-teal-950/5 reveal-child border border-teal-900/5">
+          <span class="quote-mark">"</span>
+          <div class="relative z-10">
+            <div class="flex gap-1 mb-4">
+              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            </div>
+            <p class="text-gray-600 text-sm leading-relaxed mb-6">
+              "Wonderful stay! The staff arranged a candle-light dinner for us and went above and beyond to make our anniversary special. The travel desk helped plan our houseboat trip seamlessly. The complimentary breakfast spread was delightful with variety."
+            </p>
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-gold rounded-full flex items-center justify-center text-teal-950 font-semibold text-sm">RA</div>
+              <div>
+                <p class="text-teal-950 font-semibold text-sm">Reshmy A.</p>
+                <p class="text-gray-400 text-xs">Guest Review</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Testimonial 3 -->
+        <div class="relative bg-white rounded-2xl p-8 shadow-md shadow-teal-950/5 reveal-child border border-teal-900/5">
+          <span class="quote-mark">"</span>
+          <div class="relative z-10">
+            <div class="flex gap-1 mb-4">
+              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            </div>
+            <p class="text-gray-600 text-sm leading-relaxed mb-6">
+              "Close to Ambalapuzha Krishna Temple and the houseboat jetty. Perfect location! The in-house restaurant serves amazing South Indian delicacies. We loved the complimentary breakfast spread. Will definitely come back."
+            </p>
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-teal-700 rounded-full flex items-center justify-center text-white font-semibold text-sm">SK</div>
+              <div>
+                <p class="text-teal-950 font-semibold text-sm">Suresh K.</p>
+                <p class="text-gray-400 text-xs">Guest Review</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Map Location Section (Full-Width) -->
+  <section id="map" class="w-full relative leading-none overflow-hidden m-0 p-0 block">
+    <iframe
+      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3936.4342405215953!2d76.35619257361628!3d9.383230483346427!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3b089bf6a11875b7%3A0x9e8dd3cbc7a0f8f5!2sHotel%20Coral%20Heights%2C%20Ambalapuzha.!5e0!3m2!1sen!2sin!4v1788503592150!5m2!1sen!2sin"
+      class="w-full block border-0 m-0 p-0"
+      style="height: 400px; min-height: 40vh;"
+      allowfullscreen=""
+      loading="lazy"
+      referrerpolicy="strict-origin-when-cross-origin"
+      title="Hotel Coral Heights Location Map"
+    ></iframe>
+  </section>
+{% endblock %}

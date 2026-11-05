@@ -1,0 +1,171 @@
+{% extends 'staff_panel/base.html' %}
+
+{% block title %}Contact &amp; Social Settings — Staff Portal{% endblock %}
+{% block header_title %}Contact &amp; Social Settings{% endblock %}
+
+{% block content %}
+<div class="space-y-8 max-w-7xl mx-auto">
+
+  <!-- Header Breadcrumb & Actions -->
+  <div class="flex items-center justify-between flex-wrap gap-4 border-b border-slate-200 pb-5">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
+        <a href="{% url 'staff_panel:website' %}" class="hover:text-teal-900 transition-colors">Website Content</a>
+        <span>&rarr;</span>
+        <span class="text-teal-950 font-bold">Contact &amp; Social</span>
+      </div>
+      <h3 class="font-serif font-bold text-2xl sm:text-3xl text-teal-950">Hotel Contact Settings</h3>
+      <p class="text-xs text-slate-500 mt-1">Manage Contact Info, Email, WhatsApp, Address, and Social Media Profile URLs.</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+    <!-- Form Section -->
+    <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+      <div>
+        <h4 class="font-serif font-bold text-xl text-teal-950">Site-wide Contact Information</h4>
+        <p class="text-xs text-slate-500 mt-0.5">Changes saved here immediately update the website topbar, footer, contact page, and WhatsApp floating widget.</p>
+      </div>
+
+      <form method="POST" class="space-y-6">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-xl">
+            {{ form.non_field_errors.0 }}
+          </div>
+        {% endif %}
+
+        <!-- Phone Numbers Section -->
+        <div class="space-y-4 border-b border-slate-100 pb-6">
+          <h5 class="text-xs font-bold text-teal-950 uppercase tracking-wider">Phone &amp; WhatsApp</h5>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="{{ form.primary_phone.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Primary Mobile *</label>
+              {{ form.primary_phone }}
+              {% if form.primary_phone.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.primary_phone.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div>
+              <label for="{{ form.whatsapp_number.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">WhatsApp Number *</label>
+              {{ form.whatsapp_number }}
+              {% if form.whatsapp_number.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.whatsapp_number.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="{{ form.landline_1.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Landline 1</label>
+              {{ form.landline_1 }}
+              {% if form.landline_1.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.landline_1.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div>
+              <label for="{{ form.landline_2.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Landline 2</label>
+              {{ form.landline_2 }}
+              {% if form.landline_2.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.landline_2.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Email & Address Section -->
+        <div class="space-y-4 border-b border-slate-100 pb-6">
+          <h5 class="text-xs font-bold text-teal-950 uppercase tracking-wider">Email &amp; Postal Address</h5>
+
+          <div>
+            <label for="{{ form.email.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Email *</label>
+            {{ form.email }}
+            {% if form.email.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.email.errors.0 }}</p>{% endif %}
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label for="{{ form.address_line_1.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Address Line 1 *</label>
+              {{ form.address_line_1 }}
+              {% if form.address_line_1.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.address_line_1.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div>
+              <label for="{{ form.address_line_2.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Address Line 2 *</label>
+              {{ form.address_line_2 }}
+              {% if form.address_line_2.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.address_line_2.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div>
+              <label for="{{ form.address_line_3.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Address Line 3 *</label>
+              {{ form.address_line_3 }}
+              {% if form.address_line_3.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.address_line_3.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Social Media Section -->
+        <div class="space-y-4 pb-2">
+          <h5 class="text-xs font-bold text-teal-950 uppercase tracking-wider">Social Profiles</h5>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="{{ form.facebook_url.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Facebook Page URL</label>
+              {{ form.facebook_url }}
+              {% if form.facebook_url.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.facebook_url.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div>
+              <label for="{{ form.instagram_url.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Instagram Profile URL</label>
+              {{ form.instagram_url }}
+              {% if form.instagram_url.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.instagram_url.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 flex justify-end">
+          <button type="submit" class="px-8 py-3 bg-gold hover:bg-gold-light text-teal-950 font-bold text-sm rounded-xl transition-all shadow-sm cursor-pointer border-0">
+            Save Contact Settings
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Live Context Preview Card -->
+    <div class="lg:col-span-4 bg-teal-950 rounded-2xl p-6 sm:p-7 text-white space-y-6 shadow-md sticky top-24">
+      <div>        
+        <h4 class="font-serif font-bold text-xl text-white">Live Site Preview</h4>
+        <p class="text-xs text-slate-300 mt-1">Current details displayed across the website pages.</p>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div class="p-3 bg-white/5 rounded-xl space-y-1">
+          <span class="text-slate-400 font-semibold block uppercase tracking-wider text-[10px]">Primary Phone</span>
+          <p class="font-bold text-gold text-sm">{{ contact.primary_phone }}</p>
+        </div>
+
+        <div class="p-3 bg-white/5 rounded-xl space-y-1">
+          <span class="text-slate-400 font-semibold block uppercase tracking-wider text-[10px]">WhatsApp</span>
+          <p class="font-bold text-emerald-400 text-sm">{{ contact.whatsapp_number }}</p>
+        </div>
+
+        <div class="p-3 bg-white/5 rounded-xl space-y-1">
+          <span class="text-slate-400 font-semibold block uppercase tracking-wider text-[10px]">Landline Numbers</span>
+          <p class="font-medium text-slate-200">{{ contact.landline_1|default:"Not set" }} / {{ contact.landline_2|default:"Not set" }}</p>
+        </div>
+
+        <div class="p-3 bg-white/5 rounded-xl space-y-1">
+          <span class="text-slate-400 font-semibold block uppercase tracking-wider text-[10px]">Email</span>
+          <p class="font-medium text-slate-200">{{ contact.email }}</p>
+        </div>
+
+        <div class="p-3 bg-white/5 rounded-xl space-y-1">
+          <span class="text-slate-400 font-semibold block uppercase tracking-wider text-[10px]">Address</span>
+          <p class="font-medium text-slate-200">{{ contact.address_line_1 }}</p>
+          <p class="text-slate-300">{{ contact.address_line_2 }}</p>
+          <p class="text-slate-300">{{ contact.address_line_3 }}</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
