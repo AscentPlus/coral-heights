@@ -131,6 +131,22 @@ def check_availability(request):
     })
 
 
+def get_client_ip(request):
+    """
+    Extract client IP from env-configured header (e.g., HTTP_CF_CONNECTING_IP, HTTP_X_FORWARDED_FOR)
+    or fall back to REMOTE_ADDR. When parsing multi-hop headers like X-Forwarded-For,
+    trust the last hop appended by the trusted reverse proxy rather than client-controlled first values.
+    """
+    header_name = getattr(settings, 'CLIENT_IP_HEADER', 'HTTP_X_FORWARDED_FOR')
+    if header_name:
+        raw_val = request.META.get(header_name, '').strip()
+        if raw_val:
+            hops = [h.strip() for h in raw_val.split(',') if h.strip()]
+            if hops:
+                return hops[-1]
+    return request.META.get('REMOTE_ADDR', '').strip()
+
+
 def send_otp(request):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
@@ -142,10 +158,7 @@ def send_otp(request):
         return JsonResponse({'success': False, 'error': 'Please enter a valid 10-digit phone number.'}, status=400)
 
     # Rate limiting: max 5 sends per IP per 10 minutes (600 seconds)
-    client_ip = (
-        request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip()
-        or request.META.get('REMOTE_ADDR', '')
-    )
+    client_ip = get_client_ip(request)
     ip_cache_key = None
     ip_count = None
     if client_ip:
@@ -192,7 +205,7 @@ def send_otp(request):
         'success': True,
         'cooldown_seconds': 30
     }
-    if getattr(settings, 'DEBUG', False):
+    if getattr(settings, 'DEBUG', False) or getattr(settings, 'DEMO_SHOW_OTP', False):
         res_payload['debug_otp'] = code
 
     return JsonResponse(res_payload)

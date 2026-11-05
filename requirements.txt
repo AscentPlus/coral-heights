@@ -5,4 +5,5 @@ django-csp
 whitenoise
 weasyprint
 Pillow
+gunicorn
 

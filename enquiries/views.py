@@ -1,9 +1,12 @@
+import logging
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.core.mail import send_mail
 from django.conf import settings
 from content.models import ContactInformation
 from .forms import EnquiryForm
+
+logger = logging.getLogger(__name__)
 
 
 def submit_enquiry(request):
@@ -42,10 +45,10 @@ def submit_enquiry(request):
                 message=message,
                 from_email=from_email,
                 recipient_list=[recipient_email],
-                fail_silently=True,
+                fail_silently=False,
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Failed to send enquiry notification email: %s", exc)
 
         if is_browser_html_submit:
             return redirect('/?submitted=true#enquiry')

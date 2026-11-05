@@ -25,8 +25,7 @@ if not DEBUG and (not SECRET_KEY or SECRET_KEY == INSECURE_DEV_SECRET_KEY):
         "SECRET_KEY must be configured with a secure, unique value when DEBUG is False."
     )
 
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[
-                         'localhost', '127.0.0.1', 'localhost:8005', '127.0.0.1:8005'])
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 CSRF_TRUSTED_ORIGINS = env.list(
     'CSRF_TRUSTED_ORIGINS',
     default=[
@@ -91,8 +90,20 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database configuration (PostgreSQL if DATABASE_URL is set, otherwise fallback to SQLite for local dev)
+database_url = env('DATABASE_URL', default='').strip()
+if not DEBUG and not database_url:
+    raise ImproperlyConfigured(
+        "DATABASE_URL must be configured when DEBUG is False. SQLite fallback is only permitted in development (DEBUG=True)."
+    )
+
 DATABASES = {
     'default': env.db('DATABASE_URL', default=f'sqlite:///{BASE_DIR / "db.sqlite3"}')
+}
+
+# Cache configuration (locmem for dev, database cache for production multi-worker consistency)
+default_cache_url = 'locmemcache://' if DEBUG else 'dbcache://cache_table'
+CACHES = {
+    'default': env.cache_url('CACHE_URL', default=default_cache_url)
 }
 
 # Password validation
@@ -140,11 +151,60 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=True)
     SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=True)
     CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', default=True)
-    SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=31536000)
+    SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=3600)
     SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool(
         'SECURE_HSTS_INCLUDE_SUBDOMAINS', default=True)
-    SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', default=True)
+    SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', default=False)
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Email configuration
+EMAIL_BACKEND = env(
+    'EMAIL_BACKEND',
+    default='django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend'
+)
+EMAIL_HOST = env('EMAIL_HOST', default='localhost')
+EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='noreply@example.com')
+
+# Application and Server Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} [{name}]: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': env('LOG_LEVEL', default='INFO'),
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}
+
+# Client IP Header for reverse proxy rate-limiting (e.g. HTTP_X_FORWARDED_FOR, HTTP_CF_CONNECTING_IP)
+CLIENT_IP_HEADER = env('CLIENT_IP_HEADER', default='HTTP_X_FORWARDED_FOR')
 
 # Content Security Policy (HTTP Response Header via django-csp 4.0+)
 CONTENT_SECURITY_POLICY = {
@@ -167,3 +227,5 @@ CONTENT_SECURITY_POLICY = {
 OTP_GATEWAY = env('OTP_GATEWAY', default='console')
 PAYMENT_GATEWAY = env('PAYMENT_GATEWAY', default='mock')
 ALLOW_MOCK_PAYMENT = env.bool('ALLOW_MOCK_PAYMENT', default=False)
+DEMO_SHOW_OTP = env.bool('DEMO_SHOW_OTP', default=False)
+

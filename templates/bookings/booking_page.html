@@ -246,7 +246,8 @@
 
                     <template x-if="hasDebugOtp">
                       <div class="mt-3 p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-xs font-mono">
-                        Development Code: <strong class="text-sm font-bold tracking-widest text-emerald-950" x-text="debugOtp"></strong>
+                        <div>Development Code: <strong class="text-sm font-bold tracking-widest text-emerald-950" x-text="debugOtp"></strong></div>
+                        <div class="text-xs text-emerald-700 font-sans mt-1">Demo mode: no SMS is sent.</div>
                       </div>
                     </template>
                   </div>

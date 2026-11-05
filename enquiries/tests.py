@@ -90,3 +90,25 @@ class EnquiryFormTestCase(TestCase):
         """GET request to /enquiries/submit/ returns 405 Method Not Allowed."""
         response = self.client.get('/enquiries/submit/')
         self.assertEqual(response.status_code, 405)
+
+    def test_enquiry_submission_logs_warning_when_email_fails(self):
+        """When email sending fails, a warning is logged and the enquiry is still saved."""
+        from unittest.mock import patch
+        preferred_date = (date.today() + timedelta(days=10)).strftime('%Y-%m-%d')
+        data = {
+            'function_type': 'wedding',
+            'preferred_date': preferred_date,
+            'guest_count': 150,
+            'contact_name': 'Ramesh Kumar',
+            'contact_phone': '9876543210',
+            'menu_requirements': 'Traditional Kerala Sadya',
+            'notes': 'Stage arrangement required',
+        }
+
+        with patch('enquiries.views.send_mail', side_effect=Exception('SMTP connection failed')):
+            with self.assertLogs('enquiries.views', level='WARNING') as cm:
+                response = self.client.post('/enquiries/submit/', data)
+                self.assertEqual(response.status_code, 200)
+                self.assertTrue(response.json()['success'])
+                self.assertTrue(any('Failed to send enquiry notification email' in output for output in cm.output))
+

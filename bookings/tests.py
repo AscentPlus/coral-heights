@@ -1145,4 +1145,59 @@ class SettingsHardeningTestCase(TestCase):
         # Valid in production with secure key
         check_secret_key_security(False, "production-secret-key-xyz-123")
 
+    def test_database_url_required_when_debug_false(self):
+        """When DEBUG is False and DATABASE_URL is missing, raise ImproperlyConfigured."""
+        def check_db_config(debug_flag, db_url):
+            if not debug_flag and not (db_url or '').strip():
+                raise ImproperlyConfigured("DATABASE_URL must be configured when DEBUG is False.")
+
+        with self.assertRaises(ImproperlyConfigured):
+            check_db_config(False, "")
+
+        with self.assertRaises(ImproperlyConfigured):
+            check_db_config(False, None)
+
+        # Allowed in dev (DEBUG=True)
+        check_db_config(True, "")
+        # Allowed in prod with valid URL
+        check_db_config(False, "postgres://user:pass@localhost:5432/db")
+
+    def test_demo_show_otp_visibility_flag(self):
+        """send_otp returns debug_otp when DEMO_SHOW_OTP=True even with DEBUG=False."""
+        cache.clear()
+        phone = "9876543290"
+        with self.settings(DEBUG=False, DEMO_SHOW_OTP=False):
+            res = self.client.post('/bookings/otp/send/', data={'phone': phone}, content_type='application/json')
+            self.assertEqual(res.status_code, 200)
+            self.assertNotIn('debug_otp', res.json())
+
+        cache.clear()
+        phone = "9876543291"
+        with self.settings(DEBUG=False, DEMO_SHOW_OTP=True):
+            res = self.client.post('/bookings/otp/send/', data={'phone': phone}, content_type='application/json')
+            self.assertEqual(res.status_code, 200)
+            self.assertIn('debug_otp', res.json())
+
+    def test_client_ip_header_extraction(self):
+        """get_client_ip extracts last hop or custom header or falls back to REMOTE_ADDR."""
+        from bookings.views import get_client_ip
+        from django.test import RequestFactory
+        factory = RequestFactory()
+
+        # Multi-hop X-Forwarded-For: trust last hop
+        req = factory.get('/', HTTP_X_FORWARDED_FOR='198.51.100.1, 203.0.113.195', REMOTE_ADDR='10.0.0.1')
+        with self.settings(CLIENT_IP_HEADER='HTTP_X_FORWARDED_FOR'):
+            self.assertEqual(get_client_ip(req), '203.0.113.195')
+
+        # Custom Cloudflare header
+        req = factory.get('/', HTTP_CF_CONNECTING_IP='198.51.100.5', REMOTE_ADDR='10.0.0.1')
+        with self.settings(CLIENT_IP_HEADER='HTTP_CF_CONNECTING_IP'):
+            self.assertEqual(get_client_ip(req), '198.51.100.5')
+
+        # Fallback to REMOTE_ADDR when header missing
+        req = factory.get('/', REMOTE_ADDR='10.0.0.2')
+        with self.settings(CLIENT_IP_HEADER='HTTP_CF_CONNECTING_IP'):
+            self.assertEqual(get_client_ip(req), '10.0.0.2')
+
+
 
