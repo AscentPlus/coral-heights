@@ -263,9 +263,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* ── Section Background Images (CSP Compliant) ────────────── */
-.hero-bg {
-  background-image: url('https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=1920&q=85&auto=format&fit=crop');
-}
 .heritage-bg {
   background-image: url('https://images.unsplash.com/photo-1544644181-1484b3fdfc62?w=1920&q=85&auto=format&fit=crop');
 }

@@ -5,29 +5,42 @@
   <!-- Hero Section -->
   <section
     id="hero"
-    class="relative min-h-screen flex items-center justify-center overflow-hidden parallax-fixed hero-bg"
-    role="img"
-    aria-label="Kerala backwaters with traditional houseboat at sunset — placeholder for Hotel Coral Heights exterior"
-    data-placeholder="true">
-    
-    <div class="absolute inset-0 bg-gradient-to-b from-teal-950/75 via-teal-950/50 to-teal-950/85"></div>
+    x-data="heroVideo"
+    class="relative h-screen min-h-[100svh] overflow-hidden">
 
-    <div class="relative z-10 text-center px-4 max-w-4xl mx-auto py-32 md:py-40">
-      <p class="text-gold font-sans text-sm md:text-base tracking-[.25em] uppercase mb-6 reveal">Ambalapuzha · Alappuzha · Kerala</p>
-      <h1 class="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white leading-tight mb-6 reveal">
-        Feel Happy. Feel Safe.<br/>
-        <span class="text-gold">At the Heights.</span>
-      </h1>
-      <p class="text-white/85 text-base md:text-lg max-w-2xl mx-auto leading-relaxed mb-10 reveal">
-        Hospitality combines with modern luxury, keeping the traditional flavour of Kerala as an underlying standard.
-      </p>
-      <a href="#availability" class="btn-gold inline-flex items-center gap-2 px-8 py-4 bg-gold text-teal-950 font-semibold rounded text-base tracking-wide hover:bg-gold-light transition-all shadow-xl reveal">
-        Check Availability
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-      </a>
-    </div>
-    
-    <div class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-cream to-transparent"></div>
+    <h1 class="sr-only">Hotel Coral Heights — Ambalapuzha, Alappuzha</h1>
+
+    <video x-ref="video" class="absolute inset-0 w-full h-full object-cover"
+           autoplay muted loop playsinline preload="auto"
+           poster="{% static 'images/hero-poster.jpg' %}"
+           disablepictureinpicture disableremoteplayback
+           controlslist="nodownload noremoteplayback"
+           aria-hidden="true" tabindex="-1">
+      <source src="{% static 'video/hero.mp4' %}" type="video/mp4">
+      <!-- optional: <source src="{% static 'video/hero.webm' %}" type="video/webm"> -->
+    </video>
+
+    <!-- Top gradient for nav legibility -->
+    <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/40 to-transparent z-[1]" aria-hidden="true"></div>
+
+    <!-- Mute / unmute button -->
+    <button
+      x-show="showButton"
+      x-cloak
+      @click="toggleMute"
+      :aria-label="muteLabel"
+      :aria-pressed="isMuted"
+      class="absolute bottom-28 left-4 md:bottom-32 md:left-8 z-10 w-12 h-12 flex items-center justify-center rounded-full bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 transition-colors focus:outline-none focus:ring-2 focus:ring-gold focus:ring-offset-2 focus:ring-offset-transparent"
+    >
+      <!-- Speaker with waves (unmuted) -->
+      <svg x-show="isUnmuted" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9M11 5L6 9H2v6h4l5 4V5z"/>
+      </svg>
+      <!-- Speaker with slash (muted) -->
+      <svg x-show="isMuted" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M11 5L6 9H2v6h4l5 4V5z"/>
+      </svg>
+    </button>
   </section>
   
   <!-- Check Availability Widget -->

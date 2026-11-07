@@ -24,6 +24,91 @@ document.addEventListener('alpine:init', () => {
     return str;
   }
 
+  // Hero video: autoplay, mute/unmute, pause on scroll-away / tab-hide
+  Alpine.data('heroVideo', () => ({
+    muted: true,
+    showButton: true,
+    _observer: null,
+
+    init() {
+      const video = this.$refs.video;
+      if (!video) { this.showButton = false; return; }
+
+      // Respect reduced-motion and data-saver
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const saveData = !!(navigator.connection && navigator.connection.saveData);
+
+      if (prefersReducedMotion || saveData) {
+        video.pause();
+        this.showButton = false;
+        return;
+      }
+
+      // Attempt autoplay (must be muted)
+      const playPromise = video.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {
+          // Autoplay blocked (e.g. iOS Low Power Mode): poster shows, hide button
+          this.showButton = false;
+        });
+      }
+
+      // IntersectionObserver: pause when hero is <25% visible
+      if (typeof IntersectionObserver !== 'undefined') {
+        this._observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              video.play().catch(() => {});
+            } else {
+              video.pause();
+            }
+          });
+        }, { threshold: 0.25 });
+        this._observer.observe(this.$el);
+      }
+
+      // Pause on tab hidden, resume on visible
+      document.addEventListener('visibilitychange', () => {
+        if (!this.$refs.video) return;
+        if (document.hidden) {
+          this.$refs.video.pause();
+        } else {
+          this.$refs.video.play().catch(() => {});
+        }
+      });
+    },
+
+    get muteLabel() {
+      return this.muted ? 'Unmute video' : 'Mute video';
+    },
+
+    get isMuted() {
+      return this.muted;
+    },
+
+    get isUnmuted() {
+      return !this.muted;
+    },
+
+    toggleMute() {
+      const video = this.$refs.video;
+      if (!video) return;
+      this.muted = !this.muted;
+      video.muted = this.muted;
+      // If unmuting while paused, start playback
+      if (!this.muted && video.paused) {
+        video.play().catch(() => {});
+      }
+    },
+
+    destroy() {
+      if (this._observer) {
+        this._observer.disconnect();
+        this._observer = null;
+      }
+    }
+  }));
+
   // Navigation bar: scroll-aware + mobile menu toggle
   Alpine.data('navState', () => ({
     scrolled: false,
