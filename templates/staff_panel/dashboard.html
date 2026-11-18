@@ -21,10 +21,10 @@
         </div>
       </a>
 
-      <!-- Card 2: Overdue Checkouts -->
+      <!-- Card 2: Overdue -->
       <a href="{% url 'staff_panel:bookings' %}?status=confirmed&overdue=1" class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex items-center justify-between hover:border-rose-600 transition-all group">
         <div>
-          <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 group-hover:text-rose-700">Overdue Checkouts</p>
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 group-hover:text-rose-700">Overdue</p>
           <p class="text-3xl font-serif font-bold {% if overdue_count > 0 %}text-rose-600{% else %}text-slate-900{% endif %}">{{ overdue_count }}</p>
         </div>
         <div class="w-14 h-14 {% if overdue_count > 0 %}bg-rose-100 text-rose-700{% else %}bg-slate-100 text-slate-500{% endif %} rounded-2xl flex items-center justify-center flex-shrink-0">

@@ -402,7 +402,7 @@ class StaffBookingsAndRoomsTests(TestCase):
         res = self.client.get(
             reverse('staff_panel:bookings'), {'overdue': '1'})
         self.assertContains(res, 'Alice Smith')
-        self.assertContains(res, 'Overdue checkout')
+        self.assertContains(res, 'Overdue')
         self.assertNotContains(res, 'Bob Jones')
 
     def test_mark_guest_departed_eligible(self):

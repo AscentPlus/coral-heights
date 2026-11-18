@@ -864,6 +864,44 @@ document.addEventListener('alpine:init', () => {
       return !this.submitted;
     },
 
+    get hasNonFieldError() {
+      return !!(this.errors && this.errors.non_field_errors && this.errors.non_field_errors.length);
+    },
+
+    get nonFieldErrorMessage() {
+      return this.hasNonFieldError ? this.errors.non_field_errors[0] : '';
+    },
+
+    get hasPhoneError() {
+      return !!(this.errors && this.errors.contact_phone && this.errors.contact_phone.length);
+    },
+
+    get phoneErrorMessage() {
+      return this.hasPhoneError ? this.errors.contact_phone[0] : '';
+    },
+
+    get phoneInputClass() {
+      return this.hasPhoneError
+        ? 'border-rose-500 bg-rose-50/20 focus:border-rose-500 focus:ring-rose-200'
+        : 'border-gray-200 focus:border-gold focus:ring-gold/20';
+    },
+
+    get hasMenuRequirementsError() {
+      return !!(this.errors && this.errors.menu_requirements && this.errors.menu_requirements.length);
+    },
+
+    get menuRequirementsErrorMessage() {
+      return this.hasMenuRequirementsError ? this.errors.menu_requirements[0] : '';
+    },
+
+    get hasNotesError() {
+      return !!(this.errors && this.errors.notes && this.errors.notes.length);
+    },
+
+    get notesErrorMessage() {
+      return this.hasNotesError ? this.errors.notes[0] : '';
+    },
+
     hasFieldError(fieldName) {
       return !!(this.errors && this.errors[fieldName] && this.errors[fieldName].length);
     },
@@ -959,6 +997,324 @@ document.addEventListener('alpine:init', () => {
         this.errors = { non_field_errors: ['Network error. Please try again later.'] };
       } finally {
         this.submitting = false;
+      }
+    }
+  }));
+
+  // Hotel Assistant Chatbot component (CSP-safe)
+  Alpine.data('chatbot', () => ({
+    open: false,
+    inputText: '',
+    loading: false,
+    topics: [],
+    _launcherBtn: null,
+    _inputEl: null,
+    _messagesContainer: null,
+
+    init() {
+      this._launcherBtn = document.getElementById('chatLauncherBtn');
+      this._inputEl = document.getElementById('chatTextInput');
+      this._messagesContainer = document.getElementById('chatMessagesList');
+
+      this.fetchTopics();
+
+      // Initial greeting message
+      this.addAssistantMessage(
+        "Namaskaram! I am the Hotel Assistant for Hotel Coral Heights. How may I help you today? You can ask me about our room rates, restaurant timings, menu, hotel facilities, or how to reach us.",
+        [
+          { label: "Rooms & Rates", type: "topic", value: "rooms and rates" },
+          { label: "Restaurant & Menu", type: "topic", value: "restaurant" },
+          { label: "Facilities", type: "topic", value: "facilities" },
+          { label: "How to Reach", type: "topic", value: "how to reach" },
+          { label: "Check Availability", type: "scroll", value: "#availability" }
+        ]
+      );
+    },
+
+    get isOpen() {
+      return this.open;
+    },
+    get isClosed() {
+      return !this.open;
+    },
+    get isLoading() {
+      return this.loading;
+    },
+    get isNotLoading() {
+      return !this.loading;
+    },
+    get canSend() {
+      return this.inputText.trim().length > 0 && !this.loading;
+    },
+    get isSendDisabled() {
+      return this.inputText.trim().length === 0 || this.loading;
+    },
+    get panelClasses() {
+      return this.open ? 'chat-panel-open' : 'chat-panel-closed hidden';
+    },
+
+    toggleChat() {
+      if (this.open) {
+        this.closeChat();
+      } else {
+        this.openChat();
+      }
+    },
+
+    openChat() {
+      this.open = true;
+      this.$nextTick(() => {
+        if (this._inputEl) {
+          this._inputEl.focus();
+        }
+        this.scrollToBottom();
+      });
+    },
+
+    closeChat() {
+      this.open = false;
+      this.$nextTick(() => {
+        if (this._launcherBtn) {
+          this._launcherBtn.focus();
+        }
+      });
+    },
+
+    onInput(e) {
+      this.inputText = (e && e.target ? e.target.value : '').slice(0, 300);
+    },
+
+    async fetchTopics() {
+      try {
+        const res = await fetch('/chat/topics/');
+        if (res.ok) {
+          const data = await res.json();
+          this.topics = data.topics || [];
+          this.renderQuickReplyChips();
+        }
+      } catch (err) {
+        this.topics = [
+          { label: "Rooms & Rates", topic: "rooms" },
+          { label: "Restaurant", topic: "restaurant" },
+          { label: "Facilities", topic: "facilities" },
+          { label: "Directions", topic: "how to reach" }
+        ];
+        this.renderQuickReplyChips();
+      }
+    },
+
+    renderQuickReplyChips() {
+      const chipsContainer = document.getElementById('chatQuickChips');
+      if (!chipsContainer || !this.topics || this.topics.length === 0) return;
+      chipsContainer.textContent = '';
+
+      this.topics.forEach(t => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'chat-chip px-3 py-1 bg-white hover:bg-gold/20 text-teal-950 border border-slate-200 hover:border-gold rounded-full text-xs font-semibold whitespace-nowrap transition-all shadow-2xs cursor-pointer flex-shrink-0';
+        btn.textContent = t.label;
+        btn.setAttribute('aria-label', t.label);
+        btn.addEventListener('click', () => {
+          this.sendDirectMessage(t.topic || t.label);
+        });
+        chipsContainer.appendChild(btn);
+      });
+    },
+
+    scrollToBottom() {
+      if (this._messagesContainer) {
+        this._messagesContainer.scrollTop = this._messagesContainer.scrollHeight;
+      }
+    },
+
+    addUserMessage(text) {
+      if (!this._messagesContainer) return;
+
+      const row = document.createElement('div');
+      row.className = 'flex justify-end mb-3';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'max-w-[85%] bg-teal-900 text-white text-xs sm:text-sm rounded-2xl rounded-tr-xs px-4 py-2.5 shadow-sm leading-relaxed';
+      bubble.textContent = text;
+
+      row.appendChild(bubble);
+      this._messagesContainer.appendChild(row);
+      this.scrollToBottom();
+    },
+
+    addAssistantMessage(text, actions) {
+      if (!this._messagesContainer) return;
+
+      const row = document.createElement('div');
+      row.className = 'flex flex-col items-start mb-3 max-w-[92%]';
+
+      const label = document.createElement('span');
+      label.className = 'text-[10px] font-bold text-teal-900 uppercase tracking-wider mb-1 pl-1 flex items-center gap-1';
+      label.textContent = 'Hotel Assistant';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'w-full bg-teal-50/80 border border-teal-100 text-teal-950 text-xs sm:text-sm rounded-2xl rounded-tl-xs px-4 py-2.5 shadow-2xs whitespace-pre-line leading-relaxed';
+      bubble.textContent = text;
+
+      row.appendChild(label);
+      row.appendChild(bubble);
+
+      if (actions && Array.isArray(actions) && actions.length > 0) {
+        const actionsBox = document.createElement('div');
+        actionsBox.className = 'flex flex-wrap gap-1.5 mt-2 pl-1';
+
+        actions.forEach(act => {
+          if (!act || !act.type || !act.label) return;
+
+          if (act.type === 'scroll') {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'px-3 py-1 bg-gold hover:bg-gold-light text-teal-950 font-bold rounded-lg text-xs transition-all shadow-2xs cursor-pointer border-0';
+            btn.textContent = act.label;
+            btn.setAttribute('aria-label', act.label);
+            btn.addEventListener('click', () => {
+              const target = document.querySelector(act.value);
+              if (target) {
+                target.scrollIntoView({ behavior: 'smooth' });
+                if (window.innerWidth < 640) {
+                  this.closeChat();
+                }
+              }
+            });
+            actionsBox.appendChild(btn);
+
+          } else if (act.type === 'tel') {
+            const a = document.createElement('a');
+            a.href = `tel:${act.value}`;
+            a.className = 'px-3 py-1 bg-teal-900 hover:bg-teal-950 text-gold font-bold rounded-lg text-xs transition-all shadow-2xs inline-flex items-center gap-1';
+            a.textContent = act.label;
+            a.setAttribute('aria-label', act.label);
+            actionsBox.appendChild(a);
+
+          } else if (act.type === 'whatsapp') {
+            const a = document.createElement('a');
+            a.href = act.value;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            a.className = 'px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-all shadow-2xs inline-flex items-center gap-1';
+            a.textContent = act.label;
+            a.setAttribute('aria-label', act.label);
+            actionsBox.appendChild(a);
+
+          } else if (act.type === 'topic') {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'px-3 py-1 bg-white hover:bg-teal-100 text-teal-900 border border-teal-200 rounded-lg text-xs font-semibold transition-all shadow-2xs cursor-pointer';
+            btn.textContent = act.label;
+            btn.setAttribute('aria-label', act.label);
+            btn.addEventListener('click', () => {
+              this.sendDirectMessage(act.value || act.label);
+            });
+            actionsBox.appendChild(btn);
+          }
+        });
+
+        row.appendChild(actionsBox);
+      }
+
+      this._messagesContainer.appendChild(row);
+      this.scrollToBottom();
+    },
+
+    showTypingIndicator() {
+      if (!this._messagesContainer) return;
+      let indicator = document.getElementById('chatTypingIndicator');
+      if (indicator) return;
+
+      indicator = document.createElement('div');
+      indicator.id = 'chatTypingIndicator';
+      indicator.className = 'flex items-center gap-1.5 p-2 bg-teal-50 border border-teal-100 rounded-xl w-16 mb-2';
+      indicator.setAttribute('aria-label', 'Hotel assistant is typing');
+
+      for (let i = 0; i < 3; i++) {
+        const dot = document.createElement('span');
+        dot.className = 'w-1.5 h-1.5 bg-teal-700 rounded-full animate-bounce';
+        dot.style.animationDelay = `${i * 150}ms`;
+        indicator.appendChild(dot);
+      }
+
+      this._messagesContainer.appendChild(indicator);
+      this.scrollToBottom();
+    },
+
+    hideTypingIndicator() {
+      const indicator = document.getElementById('chatTypingIndicator');
+      if (indicator && indicator.parentElement) {
+        indicator.parentElement.removeChild(indicator);
+      }
+    },
+
+    sendDirectMessage(msgText) {
+      this.inputText = msgText;
+      this.sendMessage();
+    },
+
+    async sendMessage() {
+      const text = this.inputText.trim();
+      if (!text || this.loading) return;
+
+      this.inputText = '';
+      if (this._inputEl) {
+        this._inputEl.value = '';
+      }
+
+      this.addUserMessage(text);
+      this.loading = true;
+      this.showTypingIndicator();
+
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+      try {
+        const res = await fetch('/chat/ask/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({ message: text })
+        });
+
+        const data = await res.json();
+        this.hideTypingIndicator();
+
+        if (res.ok) {
+          this.addAssistantMessage(data.answer, data.actions);
+        } else if (res.status === 429) {
+          this.addAssistantMessage(
+            data.error || "You've sent several messages. Please wait a moment before sending another message, or reach us on WhatsApp.",
+            [
+              { label: "Chat on WhatsApp", type: "whatsapp", value: "https://wa.me/919496200777" }
+            ]
+          );
+        } else {
+          this.addAssistantMessage(
+            data.error || "I'm having trouble processing that request right now. Please call our front desk directly at +91 9496200777.",
+            [
+              { label: "Call Front Desk", type: "tel", value: "+919496200777" }
+            ]
+          );
+        }
+      } catch (err) {
+        this.hideTypingIndicator();
+        this.addAssistantMessage(
+          "We're having trouble connecting to the hotel server right now. Please call our front desk directly at +91 9496200777 or message us on WhatsApp.",
+          [
+            { label: "Call Front Desk", type: "tel", value: "+919496200777" }
+          ]
+        );
+      } finally {
+        this.loading = false;
+        this.$nextTick(() => {
+          if (this._inputEl && window.innerWidth >= 640) {
+            this._inputEl.focus();
+          }
+        });
       }
     }
   }));

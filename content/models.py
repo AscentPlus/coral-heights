@@ -137,6 +137,15 @@ class Facility(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def rendered_svg_content(self):
+        content = (self.icon_svg_d or '').strip()
+        if not content:
+            content = DEFAULT_FACILITY_ICON
+        if '<' in content:
+            return content
+        return f'<path stroke-linecap="round" stroke-linejoin="round" d="{content}" />'
+
     def save(self, *args, **kwargs):
         if not self.icon_svg_d or not self.icon_svg_d.strip():
             name_lower = self.name.lower()

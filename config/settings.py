@@ -53,6 +53,8 @@ INSTALLED_APPS = [
     'bookings',
     'enquiries',
     'staff_panel',
+    'hotel_info',
+    'chatbot',
 ]
 
 MIDDLEWARE = [

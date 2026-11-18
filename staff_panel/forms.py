@@ -122,14 +122,14 @@ class RoomTypeForm(forms.ModelForm):
             'image', 'image_url', 'display_order'
         ]
         widgets = {
-            'name': forms.TextInput(attrs={'class': input_style, 'placeholder': 'e.g. Executive Suite'}),
-            'short_description': forms.Textarea(attrs={'class': textarea_style, 'rows': 2, 'placeholder': 'Short summary for room cards'}),
-            'long_description': forms.Textarea(attrs={'class': textarea_style, 'rows': 4, 'placeholder': 'Detailed modal description'}),
+            'name': forms.TextInput(attrs={'class': input_style}),
+            'short_description': forms.Textarea(attrs={'class': textarea_style, 'rows': 2}),
+            'long_description': forms.Textarea(attrs={'class': textarea_style, 'rows': 4}),
             'base_price_per_night': forms.NumberInput(attrs={'class': input_style, 'step': '0.01'}),
             'max_occupancy': forms.NumberInput(attrs={'class': input_style, 'min': '1'}),
-            'bed_type': forms.TextInput(attrs={'class': input_style, 'placeholder': 'e.g. King Bed'}),
+            'bed_type': forms.TextInput(attrs={'class': input_style}),
             'image': forms.FileInput(attrs={'class': file_style}),
-            'image_url': forms.TextInput(attrs={'class': input_style, 'placeholder': 'Fallback external image URL (optional)'}),
+            'image_url': forms.TextInput(attrs={'class': input_style}),
             'display_order': forms.NumberInput(attrs={'class': input_style}),
         }
 
@@ -154,7 +154,7 @@ class FacilityForm(forms.ModelForm):
         model = Facility
         fields = ['name', 'display_order']
         widgets = {
-            'name': forms.TextInput(attrs={'class': input_style, 'placeholder': 'e.g. Free High-Speed Wi-Fi'}),
+            'name': forms.TextInput(attrs={'class': input_style}),
             'display_order': forms.NumberInput(attrs={'class': input_style}),
         }
 
@@ -164,11 +164,11 @@ class AttractionForm(forms.ModelForm):
         model = Attraction
         fields = ['name', 'description', 'distance_label', 'image', 'image_url', 'display_order']
         widgets = {
-            'name': forms.TextInput(attrs={'class': input_style, 'placeholder': 'e.g. Ambalapuzha Sri Krishna Temple'}),
-            'description': forms.Textarea(attrs={'class': textarea_style, 'rows': 3, 'placeholder': 'Brief description of attraction'}),
-            'distance_label': forms.TextInput(attrs={'class': input_style, 'placeholder': 'e.g. 1.5 km'}),
+            'name': forms.TextInput(attrs={'class': input_style}),
+            'description': forms.Textarea(attrs={'class': textarea_style, 'rows': 3}),
+            'distance_label': forms.TextInput(attrs={'class': input_style}),
             'image': forms.FileInput(attrs={'class': file_style}),
-            'image_url': forms.TextInput(attrs={'class': input_style, 'placeholder': 'Fallback external image URL (optional)'}),
+            'image_url': forms.TextInput(attrs={'class': input_style}),
             'display_order': forms.NumberInput(attrs={'class': input_style}),
         }
 

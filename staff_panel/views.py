@@ -414,12 +414,17 @@ def reports_view(request):
 
 @website_access_required
 def website_dashboard(request):
+    from hotel_info.models import MenuItem, NearbyPlace, ChatFAQ, UnansweredQuestion
     contact, _ = ContactInformation.objects.get_or_create()
     context = {
         'room_types_count': RoomType.objects.count(),
         'facilities_count': Facility.objects.count(),
         'attractions_count': Attraction.objects.count(),
         'contact': contact,
+        'menu_items_count': MenuItem.objects.count(),
+        'nearby_places_count': NearbyPlace.objects.count(),
+        'faqs_count': ChatFAQ.objects.count(),
+        'unanswered_count': UnansweredQuestion.objects.filter(is_handled=False).count(),
     }
     return render(request, 'staff_panel/website/dashboard.html', context)
 

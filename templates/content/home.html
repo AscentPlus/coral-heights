@@ -19,8 +19,8 @@
       <source src="{% static 'video/hero.mp4' %}" type="video/mp4">
     </video>
 
-    <!-- Top gradient for nav legibility -->
-    <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/40 to-transparent z-[1]" aria-hidden="true"></div>
+    <!-- Top vignette gradient for nav legibility (scrim overlay) -->
+    <div class="hero-vignette-top absolute top-0 inset-x-0 h-56 md:h-64 bg-gradient-to-b from-black/75 via-black/35 to-transparent pointer-events-none z-[1]" aria-hidden="true"></div>
 
     <!-- Mute / unmute button -->
     <button
@@ -188,7 +188,7 @@
   </section>
   
   <!-- Rooms & Suites Section (Database Backed) -->
-  <section id="rooms" x-data class="py-24 md:py-32 px-4 bg-cream">
+  <section id="rooms" class="py-24 md:py-32 px-4 bg-cream">
     <div class="max-w-7xl mx-auto">
       <!-- Section header -->
       <div class="text-center mb-16 reveal">
@@ -363,8 +363,7 @@
   <section
     class="relative py-28 md:py-36 overflow-hidden parallax-fixed my-6 heritage-bg"
     role="img"
-    aria-label="Kerala traditional architecture and coconut palms background — parallax banner"
-    data-placeholder="true">
+    aria-label="Kerala traditional architecture and coconut palms background — parallax banner">
     
     <div class="absolute inset-0 bg-gradient-to-r from-teal-950/90 via-teal-950/75 to-teal-950/90"></div>
     <div class="relative z-10 max-w-4xl mx-auto px-4 text-center reveal">
@@ -396,7 +395,7 @@
           <div class="facility-card bg-cream rounded-xl border border-transparent p-6 md:p-8 text-center reveal-child">
             <div class="w-14 h-14 mx-auto mb-4 bg-teal-900/10 rounded-xl flex items-center justify-center text-teal-800">
               <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" aria-hidden="true">
-                {{ facility.icon_svg_d|safe }}
+                {{ facility.rendered_svg_content|safe }}
               </svg>
             </div>
             <h3 class="font-semibold text-teal-950 text-sm">{{ facility.name }}</h3>
@@ -411,8 +410,7 @@
     id="restaurant"
     class="relative min-h-[600px] md:min-h-[680px] flex items-center justify-center overflow-hidden parallax-fixed restaurant-bg"
     role="img"
-    aria-label="Beautifully plated Kerala cuisine with traditional spices and coconut — placeholder for Coral Heights restaurant"
-    data-placeholder="true"
+    aria-label="Kerala cuisine with traditional spices and coconut — Coral Heights restaurant"
   >
     <div class="absolute inset-0 bg-gradient-to-b from-teal-950/80 via-teal-950/70 to-teal-950/90"></div>
 
@@ -435,7 +433,7 @@
   <section id="attractions" class="py-24 md:py-32 px-4 bg-white">
     <div class="max-w-7xl mx-auto">
       <div class="text-center mb-16 reveal">
-        <p class="text-gold text-sm font-semibold tracking-[.2em] uppercase mb-3">Explore Kerala</p>
+        <p class="text-gold text-sm font-semibold tracking-[.2em] uppercase mb-3">Explore Alleppey</p>
         <h2 class="font-serif text-3xl md:text-4xl lg:text-5xl text-teal-950">Nearby Attractions</h2>
         <div class="w-16 h-0.5 bg-gold mx-auto mt-5"></div>
       </div>
@@ -508,12 +506,12 @@
             {% csrf_token %}
 
             <!-- Non-field error alert -->
-            <template x-if="hasFieldError('non_field_errors')">
+            <template x-if="hasNonFieldError">
               <div class="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm flex items-center gap-3">
                 <svg class="w-5 h-5 text-rose-600 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span x-text="getFieldError('non_field_errors')"></span>
+                <span x-text="nonFieldErrorMessage"></span>
               </div>
             </template>
 
@@ -555,7 +553,6 @@
                   name="guest_count"
                   id="id_guest_count"
                   min="1"
-                  placeholder="e.g. 50"
                   class="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
                   required
                 />
@@ -570,7 +567,6 @@
                   type="text"
                   name="contact_name"
                   id="id_contact_name"
-                  placeholder="Full name"
                   class="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
                   required
                 />
@@ -583,19 +579,18 @@
                   type="tel"
                   name="contact_phone"
                   id="id_contact_phone"
-                  placeholder="10-digit mobile number"
                   maxlength="10"
                   @input="onPhoneInput"
-                  :class="hasFieldError('contact_phone') ? 'border-rose-500 bg-rose-50/20 focus:border-rose-500 focus:ring-rose-200' : 'border-gray-200 focus:border-gold focus:ring-gold/20'"
+                  :class="phoneInputClass"
                   class="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-all"
                   required
                 />
-                <template x-if="hasFieldError('contact_phone')">
+                <template x-if="hasPhoneError">
                   <div class="text-xs text-rose-600 font-semibold mt-1.5 flex items-center gap-1">
                     <svg class="w-4 h-4 text-rose-600 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span x-text="getFieldError('contact_phone')"></span>
+                    <span x-text="phoneErrorMessage"></span>
                   </div>
                 </template>
               </div>
@@ -608,11 +603,10 @@
                 name="menu_requirements"
                 id="id_menu_requirements"
                 rows="3"
-                placeholder="Mention preferences like Sadya, Buffet, Veg/Non-veg preferences..."
                 class="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
               ></textarea>
-              <template x-if="hasFieldError('menu_requirements')">
-                <p class="text-xs text-rose-600 mt-1.5" x-text="getFieldError('menu_requirements')"></p>
+              <template x-if="hasMenuRequirementsError">
+                <p class="text-xs text-rose-600 mt-1.5" x-text="menuRequirementsErrorMessage"></p>
               </template>
             </div>
 
@@ -623,11 +617,10 @@
                 name="notes"
                 id="id_notes"
                 rows="3"
-                placeholder="Any special requests or details about timings, seating, etc."
                 class="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
               ></textarea>
-              <template x-if="hasFieldError('notes')">
-                <p class="text-xs text-rose-600 mt-1.5" x-text="getFieldError('notes')"></p>
+              <template x-if="hasNotesError">
+                <p class="text-xs text-rose-600 mt-1.5" x-text="notesErrorMessage"></p>
               </template>
             </div>
 
@@ -655,91 +648,6 @@
     </div>
   </section>
 
-  <!-- Testimonials Section -->
-  <section id="testimonials" class="pt-20 px-4 bg-cream" style="padding-bottom: 4rem;">
-    <div class="max-w-7xl mx-auto">
-      <div class="text-center mb-16 reveal">
-        <p class="text-gold text-sm font-semibold tracking-[.2em] uppercase mb-3">Guest Voices</p>
-        <h2 class="font-serif text-3xl md:text-4xl lg:text-5xl text-teal-950">What Our Guests Say</h2>
-        <div class="w-16 h-0.5 bg-gold mx-auto mt-5"></div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <!-- Testimonial 1 -->
-        <div class="relative bg-white rounded-2xl p-8 shadow-md shadow-teal-950/5 reveal-child border border-teal-900/5">
-          <span class="quote-mark">"</span>
-          <div class="relative z-10">
-            <div class="flex gap-1 mb-4">
-              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            </div>
-            <p class="text-gray-600 text-sm leading-relaxed mb-6">
-              "The rooms are quite spacious and well maintained by the housekeeping team. Room service was very prompt. The front office team, especially the manager, were very polite and always greeted with a warm smile. Highly recommend for families and business travellers alike."
-            </p>
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-teal-800 rounded-full flex items-center justify-center text-white font-semibold text-sm">PN</div>
-              <div>
-                <p class="text-teal-950 font-semibold text-sm">Prajit Nair</p>
-                <p class="text-gray-400 text-xs">Guest Review</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Testimonial 2 -->
-        <div class="relative bg-white rounded-2xl p-8 shadow-md shadow-teal-950/5 reveal-child border border-teal-900/5">
-          <span class="quote-mark">"</span>
-          <div class="relative z-10">
-            <div class="flex gap-1 mb-4">
-              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            </div>
-            <p class="text-gray-600 text-sm leading-relaxed mb-6">
-              "Wonderful stay! The staff arranged a candle-light dinner for us and went above and beyond to make our anniversary special. The travel desk helped plan our houseboat trip seamlessly. The complimentary breakfast spread was delightful with variety."
-            </p>
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-gold rounded-full flex items-center justify-center text-teal-950 font-semibold text-sm">RA</div>
-              <div>
-                <p class="text-teal-950 font-semibold text-sm">Reshmy A.</p>
-                <p class="text-gray-400 text-xs">Guest Review</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Testimonial 3 -->
-        <div class="relative bg-white rounded-2xl p-8 shadow-md shadow-teal-950/5 reveal-child border border-teal-900/5">
-          <span class="quote-mark">"</span>
-          <div class="relative z-10">
-            <div class="flex gap-1 mb-4">
-              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-              <svg class="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-            </div>
-            <p class="text-gray-600 text-sm leading-relaxed mb-6">
-              "Close to Ambalapuzha Krishna Temple and the houseboat jetty. Perfect location! The in-house restaurant serves amazing South Indian delicacies. We loved the complimentary breakfast spread. Will definitely come back."
-            </p>
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-teal-700 rounded-full flex items-center justify-center text-white font-semibold text-sm">SK</div>
-              <div>
-                <p class="text-teal-950 font-semibold text-sm">Suresh K.</p>
-                <p class="text-gray-400 text-xs">Guest Review</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- Map Location Section (Full-Width) -->
   <section id="map" class="w-full relative leading-none overflow-hidden m-0 p-0 block">
     <iframe
@@ -752,4 +660,7 @@
       title="Hotel Coral Heights Location Map"
     ></iframe>
   </section>
+
+  <!-- Hotel Assistant Chatbot (Homepage Only) -->
+  {% include 'content/_chatbot.html' %}
 {% endblock %}

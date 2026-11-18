@@ -1,0 +1,178 @@
+{% extends 'staff_panel/base.html' %}
+
+{% block title %}Nearby Transport &amp; Essentials — Staff Portal{% endblock %}
+{% block header_title %}Nearby Transport &amp; Essentials{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-7xl mx-auto">
+
+  <!-- Header Breadcrumb & Actions -->
+  <div class="flex items-center justify-between flex-wrap gap-4 border-b border-slate-200 pb-5">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
+        <a href="{% url 'staff_panel:website' %}" class="hover:text-teal-900 transition-colors">Website Content</a>
+        <span>&rarr;</span>
+        <span class="text-teal-950 font-bold">Hotel &amp; Restaurant Details</span>
+        <span>&rarr;</span>
+        <span class="text-teal-700">Nearby Places</span>
+      </div>
+      <h3 class="font-serif font-bold text-2xl sm:text-3xl text-teal-950">Nearby Transport &amp; Essentials</h3>
+      <p class="text-xs text-slate-500 mt-1">Manage essential transport hubs and services (railway station, bus stand, airport, hospitals, ATMs). Tourist attractions remain in Attractions.</p>
+    </div>
+
+    <div>
+      {% if edit_place %}
+        <a href="{% url 'staff_panel:website_nearby_places' %}" class="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold rounded-xl transition-all inline-flex items-center gap-1.5">
+          &larr; Cancel Editing
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Sub-nav Tabs -->
+  {% include 'staff_panel/website/_hotel_info_tabs.html' %}
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+    <!-- Left: Existing Nearby Places Table -->
+    <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <h4 class="font-serif font-bold text-xl text-teal-950">Registered Places &amp; Hubs</h4>
+        <span class="px-3 py-1 bg-emerald-50 text-emerald-800 rounded-full text-xs font-bold">{{ places|length }} Places</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-sm">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+              <th class="py-3 px-4">Place &amp; Type</th>
+              <th class="py-3 px-4">Distance</th>
+              <th class="py-3 px-4">Travel Time</th>
+              <th class="py-3 px-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for place in places %}
+              <tr class="hover:bg-slate-50/80 transition-colors {% if edit_place and edit_place.id == place.id %}bg-amber-50/50{% endif %}">
+                <td class="py-3.5 px-4">
+                  <div class="space-y-0.5">
+                    <span class="font-bold text-slate-900 block">{{ place.name }}</span>
+                    <span class="inline-block px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-semibold uppercase tracking-wider">
+                      {{ place.get_place_type_display }}
+                    </span>
+                    {% if place.directions_note %}
+                      <p class="text-xs text-slate-500 line-clamp-1 max-w-xs mt-0.5">{{ place.directions_note }}</p>
+                    {% endif %}
+                  </div>
+                </td>
+
+                <td class="py-3.5 px-4 font-mono text-xs font-bold text-teal-900">
+                  {{ place.distance_km }} km
+                </td>
+
+                <td class="py-3.5 px-4 text-xs text-slate-600">
+                  {{ place.travel_time|default:"—" }}
+                </td>
+
+                <td class="py-3.5 px-4 text-right">
+                  <div class="flex items-center justify-end gap-2">
+                    <a href="?edit={{ place.id }}" class="px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-900 text-xs font-bold rounded-lg transition-colors">
+                      Edit
+                    </a>
+
+                    <form method="POST" action="{% url 'staff_panel:website_nearby_place_delete' place.id %}" class="inline">
+                      {% csrf_token %}
+                      <button type="submit" data-confirm="Are you sure you want to delete '{{ place.name }}'?" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg transition-colors border-0 cursor-pointer">
+                        Delete
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="4" class="py-8 text-center text-slate-500 text-sm">
+                  No nearby places entered yet. Use the form to add stations, bus stands, or hospitals.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Right: Add / Edit Form -->
+    <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5 sticky top-24">
+      <div>
+        <h4 class="font-serif font-bold text-xl text-teal-950">
+          {% if edit_place %}Edit Nearby Place{% else %}Add Nearby Place{% endif %}
+        </h4>
+        <p class="text-xs text-slate-500 mt-0.5">
+          {% if edit_place %}Update distance, travel time or navigation note.{% else %}Add a transit station, bus stand, airport or essential facility.{% endif %}
+        </p>
+      </div>
+
+      <form method="POST" class="space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="{% if edit_place %}edit{% else %}create{% endif %}">
+        {% if edit_place %}
+          <input type="hidden" name="place_id" value="{{ edit_place.id }}">
+        {% endif %}
+
+        {% if form.non_field_errors %}
+          <div class="p-3 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-xl">
+            {{ form.non_field_errors.0 }}
+          </div>
+        {% endif %}
+
+        <div>
+          <label for="{{ form.place_type.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Place Category *</label>
+          {{ form.place_type }}
+          {% if form.place_type.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.place_type.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div>
+          <label for="{{ form.name.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Place Name *</label>
+          {{ form.name }}
+          {% if form.name.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.name.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="{{ form.distance_km.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Distance (km) *</label>
+            {{ form.distance_km }}
+            {% if form.distance_km.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.distance_km.errors.0 }}</p>{% endif %}
+          </div>
+
+          <div>
+            <label for="{{ form.travel_time.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Travel Time</label>
+            {{ form.travel_time }}
+            {% if form.travel_time.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.travel_time.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div>
+          <label for="{{ form.directions_note.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Directions / Road Note</label>
+          {{ form.directions_note }}
+          {% if form.directions_note.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.directions_note.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div>
+          <label for="{{ form.display_order.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Display Order</label>
+          {{ form.display_order }}
+          {% if form.display_order.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.display_order.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="pt-2">
+          <button type="submit" class="w-full py-3 bg-gold hover:bg-gold-light text-teal-950 font-bold text-sm rounded-xl transition-all shadow-sm cursor-pointer border-0">
+            {% if edit_place %}Save Place Changes{% else %}Add Nearby Place{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
+

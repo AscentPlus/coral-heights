@@ -150,6 +150,48 @@ body.overflow-hidden {
 .nav-solid .nav-link-item,
 .nav-solid .nav-brand { color: #0a2e2e !important; }
 .nav-solid .nav-phone { color: #0a2e2e !important; }
+.nav-solid .nav-hamburger { color: #0a2e2e !important; }
+
+/* ── Hero top vignette for navbar legibility (scrim gradient) ── */
+.hero-vignette-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 220px;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.75) 0%,
+    rgba(0, 0, 0, 0.65) 25%,
+    rgba(0, 0, 0, 0.45) 50%,
+    rgba(0, 0, 0, 0.22) 72%,
+    rgba(0, 0, 0, 0.08) 88%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+@media (min-width: 768px) {
+  .hero-vignette-top {
+    height: 260px;
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.78) 0%,
+      rgba(0, 0, 0, 0.68) 25%,
+      rgba(0, 0, 0, 0.46) 50%,
+      rgba(0, 0, 0, 0.22) 72%,
+      rgba(0, 0, 0, 0.08) 88%,
+      rgba(0, 0, 0, 0) 100%
+    );
+  }
+}
+
+/* Subtle micro-contrast for transparent navbar over hero */
+body:not(.subpage) nav:not(.nav-solid) .nav-link-item,
+body:not(.subpage) nav:not(.nav-solid) .nav-phone {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
 
 .nav-link-item { position: relative; }
 .nav-link-item::after {
@@ -237,17 +279,6 @@ body.overflow-hidden {
 }
 .stepper-btn:hover { background: #c8a45e; color: #fff; }
 
-/* ── Testimonial quote mark ────────────────────────────── */
-.quote-mark {
-  font-family: 'DM Serif Display', Georgia, serif;
-  font-size: 5rem;
-  line-height: 1;
-  color: #c8a45e;
-  opacity: .25;
-  position: absolute;
-  top: -8px; left: 12px;
-}
-
 /* ── Date input styling ───────────────────────────────── */
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(.35) sepia(1) saturate(3) hue-rotate(130deg);
@@ -301,6 +332,9 @@ body.subpage nav .nav-link-item:hover {
   color: #c8a45e !important;
 }
 body.subpage nav .nav-phone {
+  color: #0a2e2e !important;
+}
+body.subpage nav .nav-hamburger {
   color: #0a2e2e !important;
 }
 body.subpage .nav-solid {

@@ -1,0 +1,501 @@
+import json
+from decimal import Decimal
+from datetime import timedelta
+from django.test import TestCase, Client
+from django.urls import reverse
+from django.core.cache import cache
+from django.utils import timezone
+from django.core.management import call_command
+from io import StringIO
+
+from content.models import RoomType, Facility, Attraction, ContactInformation
+from hotel_info.models import (
+    HotelInfo, RestaurantInfo, MenuCategory, MenuItem,
+    NearbyPlace, ChatFAQ, UnansweredQuestion
+)
+from chatbot.engine import answer, normalize_text, TOPIC_DISPLAY_NAMES
+
+
+class ChatbotEngineTableDrivenTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        # 1. Contact info
+        cls.contact = ContactInformation.objects.create(
+            primary_phone='+91 9496200777',
+            whatsapp_number='+919496200777',
+            email='info@coralheights.com',
+            address_line_1='Hotel Coral Heights',
+            address_line_2='Ambalapuzha, Alappuzha',
+            address_line_3='Kerala — 688 561'
+        )
+
+        # 2. Hotel info
+        cls.hotel_info = HotelInfo.objects.create(
+            check_in_time="12:00 PM",
+            check_out_time="11:00 AM",
+            address_note="Located directly on NH 66, right opposite the Ambalapuzha Temple Junction.",
+            parking_info="Free valet parking on-site for all staying guests.",
+            wifi_info="High-speed optical Wi-Fi available throughout the hotel.",
+            payment_methods="Cash, UPI (Google Pay, PhonePe), and major Credit/Debit Cards.",
+            languages_spoken="Malayalam, English, Hindi, and Tamil.",
+            pet_policy="Pets are not allowed on the property.",
+            rate_note="Rates vary by date and meal plan. Use the Check Availability box for the exact price."
+        )
+
+        # 3. Restaurant info
+        cls.restaurant_info = RestaurantInfo.objects.create(
+            name="Coral Dining Hall",
+            cuisine_description="Authentic Kuttanad and coastal Kerala specialties, plus North and South Indian favorites.",
+            breakfast_hours="7:30 AM – 10:30 AM",
+            lunch_hours="12:30 PM – 3:30 PM",
+            dinner_hours="7:30 PM – 10:30 PM",
+            thattukada_hours="4:30 PM – 8:30 PM",
+            room_service_info="Available 24 hours for beverages and light snacks."
+        )
+
+        # 4. Room Types
+        cls.deluxe_room = RoomType.objects.create(
+            name="Deluxe Room",
+            slug="deluxe-room",
+            short_description="Spacious room with modern amenities and pool view.",
+            base_price_per_night=Decimal("2800.00"),
+            max_occupancy=2,
+            bed_type="King Bed",
+            display_order=1
+        )
+        cls.executive_suite = RoomType.objects.create(
+            name="Executive Suite",
+            slug="executive-suite",
+            short_description="Luxury suite with separate living area and jacuzzi.",
+            base_price_per_night=Decimal("4500.00"),
+            max_occupancy=3,
+            bed_type="King Bed",
+            display_order=2
+        )
+
+        # 5. Facilities
+        cls.facility_pool = Facility.objects.create(name="Swimming Pool", display_order=1)
+        cls.facility_wifi = Facility.objects.create(name="Free High-Speed Wi-Fi", display_order=2)
+        cls.facility_gen = Facility.objects.create(name="24-Hour Generator Power Backup", display_order=3)
+
+        # 6. Menu
+        cls.cat_kerala = MenuCategory.objects.create(name="Kerala Delicacies", display_order=1)
+        cls.cat_veg = MenuCategory.objects.create(name="Vegetarian Meals", display_order=2)
+
+        cls.item_fish = MenuItem.objects.create(
+            category=cls.cat_kerala,
+            name="Karimeen Pollichathu",
+            description="Pearl spot fish baked in banana leaf with shallots and spices",
+            price=Decimal("380.00"),
+            is_veg=False,
+            is_available=True,
+            display_order=1
+        )
+        cls.item_biryani = MenuItem.objects.create(
+            category=cls.cat_kerala,
+            name="Thalassery Chicken Biryani",
+            description="Fragrant kaima rice dum biryani with Malabar spices",
+            price=Decimal("260.00"),
+            is_veg=False,
+            is_available=True,
+            display_order=2
+        )
+        cls.item_veg_stew = MenuItem.objects.create(
+            category=cls.cat_veg,
+            name="Vegetable Stew with Appam",
+            description="Mild coconut milk stew with garden vegetables",
+            price=Decimal("160.00"),
+            is_veg=True,
+            is_available=True,
+            display_order=3
+        )
+        cls.item_crab = MenuItem.objects.create(
+            category=cls.cat_kerala,
+            name="Mud Crab Roast",
+            description="Crab in black pepper and coconut masala",
+            price=Decimal("480.00"),
+            is_veg=False,
+            is_available=False,  # Unavailable test
+            display_order=4
+        )
+
+        # 7. Nearby Places
+        cls.place_station = NearbyPlace.objects.create(
+            place_type="railway_station",
+            name="Ambalapuzha Railway Station",
+            distance_km=Decimal("1.80"),
+            travel_time="5 min by auto",
+            directions_note="Head north on NH 66 towards station road."
+        )
+        cls.place_bus = NearbyPlace.objects.create(
+            place_type="bus_stand",
+            name="Ambalapuzha KSRTC Bus Stand",
+            distance_km=Decimal("0.80"),
+            travel_time="2 min walk / auto",
+            directions_note="Located right on the main highway."
+        )
+        cls.place_airport = NearbyPlace.objects.create(
+            place_type="airport",
+            name="Cochin International Airport (COK)",
+            distance_km=Decimal("98.00"),
+            travel_time="2.5 hours by taxi",
+            directions_note="Take NH 66 North via Alappuzha bypass."
+        )
+        cls.place_hospital = NearbyPlace.objects.create(
+            place_type="hospital",
+            name="Surya Hospital",
+            distance_km=Decimal("0.20"),
+            travel_time="1 min",
+            directions_note="Near bus stand."
+        )
+
+        # 8. Attractions
+        cls.attraction_temple = Attraction.objects.create(
+            name="Ambalapuzha Sri Krishna Temple",
+            description="Famous historic temple renowned for its traditional Palpayasam sweet offering.",
+            distance_label="1.2 km",
+            display_order=1
+        )
+        cls.attraction_beach = Attraction.objects.create(
+            name="Alappuzha Beach & Pier",
+            description="Famous golden sandy beach with historic sea bridge pier.",
+            distance_label="14.0 km",
+            display_order=2
+        )
+
+        # 9. Active FAQ
+        cls.faq_hot_water = ChatFAQ.objects.create(
+            question="Is hot water available in the bathrooms?",
+            keywords="hot water, geyser, chooduvellam, 24 hours hot water",
+            answer="Yes, 24-hour centralized solar and electric hot water is available in every room bathroom.",
+            is_active=True,
+            display_order=1
+        )
+
+    def test_table_driven_40_plus_questions(self):
+        """
+        Table-driven test suite with at least 55 sample questions covering:
+        - English standard questions
+        - Typos and misspellings
+        - Malayalam / Manglish queries
+        - Checking that expected content strings appear in the answer.
+        """
+        test_cases = [
+            # Rooms & Rates (English, Typos, Manglish)
+            ("What are the room rates?", "from ₹2800.00 per night"),
+            ("How much does a room cost per night?", "from ₹2800.00"),
+            ("What is the tariff for rooms?", "Executive Suite"),
+            ("Tell me about the deluxe room rate", "Deluxe Room"),
+            ("What is the price of Executive Suite?", "Executive Suite"),
+            ("how much for delux room", "Deluxe Room"),  # typo
+            ("room rent ethraya", "from ₹"),  # Manglish
+            ("muri vaadaka ethra", "from ₹"),  # Malayalam script
+            ("suite room tariff", "Executive Suite"),
+
+            # Facilities (English, Typos, Manglish)
+            ("What facilities do you have?", "Swimming Pool"),
+            ("Is there a swimming pool?", "Swimming Pool"),
+            ("Do you have free wifi?", "High-speed optical Wi-Fi"),
+            ("What are your parking facilities?", "Free valet parking"),
+            ("Is power backup available?", "Generator Power Backup"),
+            ("hotelil parking undo", "Parking:"),  # Manglish
+            ("swimming pul undo", "Swimming Pool"),  # Manglish typo
+            ("facilties details", "Swimming Pool"),  # Typo
+
+            # Restaurant & Food (English, Typos, Manglish, Dishes)
+            ("What are the restaurant dining hours?", "Breakfast: 7:30 AM"),
+            ("What time is breakfast served?", "7:30 AM – 10:30 AM"),
+            ("What are your dinner hours?", "Dinner: 7:30 PM"),
+            ("What time is thattukada open?", "4:30 PM – 8:30 PM"),
+            ("Do you have vegetarian food?", "Vegetable Stew with Appam"),
+            ("pure veg options", "Vegetable Stew with Appam"),
+            ("Is biryani available on the menu?", "Thalassery Chicken Biryani"),
+            ("Do you have Karimeen Pollichathu?", "Karimeen Pollichathu"),
+            ("Do you have Mud Crab Roast?", "currently listed as unavailable"),
+            ("bhakshanam samayam epozha", "Breakfast: 7:30 AM"),  # Manglish
+            ("resturant menu", "Coral Dining Hall"),  # Typo
+            ("chaya and thattukada", "4:30 PM – 8:30 PM"),  # Manglish
+
+            # How to reach / Transport (English, Typos, Manglish)
+            ("How to reach the hotel?", "Ambalapuzha Railway Station"),
+            ("How far is the railway station?", "1.80 km away"),
+            ("Distance to the bus stand", "0.80 km"),
+            ("How far is Cochin airport?", "98.00 km"),
+            ("railway station ethan ethra samayam edukum", "1.80 km away"),  # Manglish
+            ("station vazhi parayamo", "1.80 km away"),  # Manglish
+            ("distence to train station", "1.80 km away"),  # Typo
+
+            # Attractions (English, Typos, Manglish)
+            ("What are the nearby tourist attractions?", "Ambalapuzha Sri Krishna Temple"),
+            ("How far is Ambalapuzha Temple?", "Ambalapuzha Sri Krishna Temple"),
+            ("Places to visit near the hotel", "Alappuzha Beach & Pier"),
+            ("sight seeing spots nearby", "Ambalapuzha Sri Krishna Temple"),  # Typo
+            ("kaanenda sthalangal", "Ambalapuzha Sri Krishna Temple"),  # Malayalam
+
+            # Hotel info (check-in/out, pets, payment, languages)
+            ("What is your check in time?", "Check-in: 12:00 PM"),
+            ("What time is check out?", "Check-out: 11:00 AM"),
+            ("Are pets allowed in the hotel?", "Pets are not allowed"),
+            ("What payment methods do you accept?", "UPI (Google Pay, PhonePe)"),
+            ("Can I pay using Google Pay or card?", "UPI (Google Pay, PhonePe)"),
+            ("What languages do the staff speak?", "Malayalam, English, Hindi"),
+            ("checkin samayam epozha", "Check-in: 12:00 PM"),  # Manglish
+
+            # Contact and location
+            ("What is your contact phone number?", "+91 9496200777"),
+            ("Can I chat on WhatsApp?", "+919496200777"),
+            ("What is the hotel address?", "Ambalapuzha, Alappuzha"),
+            ("Where are you located?", "Hotel Coral Heights"),
+
+            # Cancellation & Refund
+            ("What is your cancellation policy?", "Cancellation and refund requests must be made"),
+            ("Can I get a refund if I cancel my booking?", "24 hours before your scheduled check-in"),
+
+            # Availability & Booking (Must NEVER promise availability)
+            ("Is a room free tomorrow?", "Check Availability box"),
+            ("Can I book a room for next Friday?", "Check Availability box"),
+            ("Check room availability", "Check Availability box"),
+
+            # Events & Catering
+            ("Can I host a wedding reception here?", "banquet"),
+            ("Do you provide catering for birthday parties?", "catering"),
+            ("Is banquet hall available for meeting?", "banquet"),
+        ]
+
+        self.assertGreaterEqual(len(test_cases), 55)
+
+        for query, expected_substring in test_cases:
+            with self.subTest(query=query):
+                res = answer(query)
+                self.assertTrue(res["matched"], f"Query '{query}' was expected to match, but matched=False")
+                self.assertIn(
+                    expected_substring.lower(),
+                    res["answer"].lower(),
+                    f"Expected '{expected_substring}' in answer for query '{query}'. Got: {res['answer']}"
+                )
+                # Verify whitelisted action types
+                for act in res.get("actions", []):
+                    self.assertIn(act["type"], ["scroll", "tel", "whatsapp", "topic"])
+                    self.assertTrue(bool(act.get("label")))
+                    self.assertTrue(bool(act.get("value")))
+
+    def test_faq_override_generic_topic(self):
+        """Staff-entered ChatFAQ overrides default answer when its keywords match."""
+        res = answer("Do you have hot water in the room?")
+        self.assertTrue(res["matched"])
+        self.assertIn("solar and electric hot water is available in every room", res["answer"].lower())
+
+    def test_dish_not_on_menu(self):
+        """Querying for a dish not on the menu offers restaurant info without hallucinating."""
+        res = answer("Do you have Sushi?")
+        # Sushi is not on menu, so it falls back to restaurant overview or general query without saying sushi is served
+        self.assertNotIn("sushi is on our menu", res["answer"].lower())
+
+    def test_single_room_query_focuses_on_that_room(self):
+        """Query specifying Deluxe Room answers for Deluxe Room only."""
+        res = answer("What is the deluxe room rate?")
+        self.assertTrue(res["matched"])
+        self.assertIn("deluxe room", res["answer"].lower())
+        self.assertNotIn("executive suite", res["answer"].lower())
+
+    def test_empty_database_fallback(self):
+        """When a topic has no database entries, states so plainly and provides phone."""
+        # Test with empty Attractions
+        Attraction.objects.all().delete()
+        res = answer("What are nearby attractions?")
+        self.assertTrue(res["matched"])
+        self.assertIn("have not been entered", res["answer"].lower())
+        self.assertIn(self.contact.primary_phone, res["answer"])
+
+    def test_tie_breaker_clarification_buttons(self):
+        """When two topics tie, engine returns a clarifying question with action buttons."""
+        from chatbot.engine import TOPIC_ROOMS, TOPIC_RESTAURANT
+        # Construct an artificial query that touches both topics equally
+        res = answer("room restaurant")
+        self.assertTrue(res["matched"])
+        # Should ask whether user wants room or restaurant info
+        self.assertTrue(
+            "would you like information about" in res["answer"].lower() or
+            len([a for a in res["actions"] if a["type"] == "topic"]) >= 2
+        )
+
+    def test_how_to_reach_excludes_hospitals_and_shows_landmark(self):
+        """
+        When asking general how to reach, do not show hospitals, ATMs or other categories;
+        only show railway station, bus stand and the landmark note.
+        """
+        res = answer("How to reach the hotel?")
+        self.assertTrue(res["matched"])
+        self.assertIn("ambalapuzha railway station", res["answer"].lower())
+        self.assertIn("ambalapuzha ksrtc bus stand", res["answer"].lower())
+        self.assertIn("landmark:", res["answer"].lower())
+        self.assertIn("located directly on nh 66", res["answer"].lower())
+        # Hospital must NOT appear in general how to reach
+        self.assertNotIn("surya hospital", res["answer"].lower())
+
+
+class ChatbotEndpointAndAbuseTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        cache.clear()
+        self.contact = ContactInformation.objects.create(
+            primary_phone='+91 9496200777',
+            whatsapp_number='+919496200777'
+        )
+
+    def test_chat_ask_valid_request(self):
+        """POST /chat/ask/ with valid JSON returns 200 and expected schema."""
+        url = reverse('chatbot:ask')
+        res = self.client.post(
+            url,
+            data=json.dumps({"message": "What is the check-in time?"}),
+            content_type="application/json"
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertIn("answer", data)
+        self.assertIn("actions", data)
+        self.assertIn("matched", data)
+        self.assertTrue(data["matched"])
+
+    def test_chat_topics_endpoint(self):
+        """GET /chat/topics/ returns 200 and list of quick-reply topics."""
+        url = reverse('chatbot:topics')
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertIn("topics", data)
+        self.assertGreaterEqual(len(data["topics"]), 4)
+
+    def test_reject_empty_message(self):
+        """Empty or whitespace-only message returns HTTP 400."""
+        url = reverse('chatbot:ask')
+        res = self.client.post(
+            url,
+            data=json.dumps({"message": "   "}),
+            content_type="application/json"
+        )
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("cannot be empty", res.json().get("error", ""))
+
+    def test_reject_over_300_chars(self):
+        """Message exceeding 300 characters returns HTTP 400."""
+        url = reverse('chatbot:ask')
+        long_msg = "hello " * 65  # > 300 chars
+        res = self.client.post(
+            url,
+            data=json.dumps({"message": long_msg}),
+            content_type="application/json"
+        )
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("exceeds the 300-character limit", res.json().get("error", ""))
+
+    def test_reject_bad_json(self):
+        """Malformed JSON payload returns HTTP 400."""
+        url = reverse('chatbot:ask')
+        res = self.client.post(
+            url,
+            data="not a json {",
+            content_type="application/json"
+        )
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("Invalid JSON", res.json().get("error", ""))
+
+    def test_rate_limiting_429(self):
+        """Sending more than 20 messages in 10 minutes returns HTTP 429."""
+        url = reverse('chatbot:ask')
+        for i in range(20):
+            res = self.client.post(
+                url,
+                data=json.dumps({"message": f"Hello {i}"}),
+                content_type="application/json"
+            )
+            self.assertEqual(res.status_code, 200)
+
+        # 21st message must be rate-limited
+        res_limit = self.client.post(
+            url,
+            data=json.dumps({"message": "Hello 21"}),
+            content_type="application/json"
+        )
+        self.assertEqual(res_limit.status_code, 429)
+        self.assertIn("quite a few messages", res_limit.json().get("error", ""))
+
+    def test_xss_safety_html_never_executed(self):
+        """Malicious script tags in user question are sanitized and treated as literal text."""
+        url = reverse('chatbot:ask')
+        script_payload = "<script>alert('xss')</script> does hotel have pool?"
+        res = self.client.post(
+            url,
+            data=json.dumps({"message": script_payload}),
+            content_type="application/json"
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        # Answer must not execute script or reflect dangerous unescaped tags
+        self.assertNotIn("<script>", data["answer"])
+
+
+class UnansweredQuestionDedupeAndPurgeTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.contact = ContactInformation.objects.create(
+            primary_phone='+91 9496200777',
+            whatsapp_number='+919496200777'
+        )
+
+    def test_unanswered_question_deduplication(self):
+        """Asking the same unknown question multiple times increments count instead of inserting duplicates."""
+        initial_count = UnansweredQuestion.objects.count()
+
+        q_text = "What is the policy for drone flying?"
+        res1 = answer(q_text)
+        self.assertFalse(res1["matched"])
+        self.assertEqual(UnansweredQuestion.objects.count(), initial_count + 1)
+
+        uq = UnansweredQuestion.objects.get(text=q_text)
+        self.assertEqual(uq.count, 1)
+
+        # Ask again
+        res2 = answer(q_text)
+        self.assertFalse(res2["matched"])
+        self.assertEqual(UnansweredQuestion.objects.count(), initial_count + 1)
+
+        uq.refresh_from_db()
+        self.assertEqual(uq.count, 2)
+
+    def test_purge_unanswered_management_command(self):
+        """purge_unanswered deletes handled questions older than threshold, preserving unhandled or recent ones."""
+        now = timezone.now()
+        old_date = now - timedelta(days=95)
+        recent_date = now - timedelta(days=10)
+
+        # 1. Old handled -> MUST BE PURGED
+        q_old_handled = UnansweredQuestion.objects.create(
+            text="Old handled question", count=1, is_handled=True
+        )
+        UnansweredQuestion.objects.filter(id=q_old_handled.id).update(last_asked=old_date)
+
+        # 2. Old unhandled -> MUST BE KEPT (staff still needs to review)
+        q_old_unhandled = UnansweredQuestion.objects.create(
+            text="Old unhandled question", count=1, is_handled=False
+        )
+        UnansweredQuestion.objects.filter(id=q_old_unhandled.id).update(last_asked=old_date)
+
+        # 3. Recent handled -> MUST BE KEPT (< 90 days)
+        q_recent_handled = UnansweredQuestion.objects.create(
+            text="Recent handled question", count=1, is_handled=True
+        )
+        UnansweredQuestion.objects.filter(id=q_recent_handled.id).update(last_asked=recent_date)
+
+        # Run management command
+        out = StringIO()
+        call_command('purge_unanswered', '--days=90', stdout=out)
+        output_str = out.getvalue()
+        self.assertIn("Successfully purged 1 handled question", output_str)
+
+        # Verify DB state
+        self.assertFalse(UnansweredQuestion.objects.filter(id=q_old_handled.id).exists())
+        self.assertTrue(UnansweredQuestion.objects.filter(id=q_old_unhandled.id).exists())
+        self.assertTrue(UnansweredQuestion.objects.filter(id=q_recent_handled.id).exists())
+
