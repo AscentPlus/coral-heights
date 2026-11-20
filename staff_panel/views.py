@@ -22,6 +22,10 @@ from .forms import (
     StaffLoginForm, StaffCreateForm,
     RoomTypeForm, FacilityForm, AttractionForm, ContactInformationForm
 )
+from django.views.decorators.http import require_POST
+from django.core.cache import cache
+from bookings.views import get_client_ip
+from enquiries.views import send_enquiry_notification
 from .permissions import (
     has_panel_access,
     has_website_access,
@@ -40,6 +44,18 @@ def staff_login(request):
 
     error_message = None
     form = StaffLoginForm(request.POST or None)
+
+    client_ip = get_client_ip(request)
+    ip_cache_key = f"staff_login_failures_{client_ip}" if client_ip else None
+
+    # Throttling check
+    if ip_cache_key:
+        failed_attempts = cache.get(ip_cache_key)
+        if failed_attempts is not None and failed_attempts >= 5:
+            return render(request, 'staff_panel/login.html', {
+                'form': form,
+                'error_message': 'Too many failed login attempts. Please wait 10 minutes before trying again.'
+            })
 
     if request.method == 'POST':
         if form.is_valid():
@@ -60,11 +76,24 @@ def staff_login(request):
                         request, username=matched_user.username, password=password_input)
 
             if user is not None and user.is_active and has_panel_access(user):
+                # Clear failure count on successful login
+                if ip_cache_key:
+                    cache.delete(ip_cache_key)
+
                 login(request, user)
                 next_url = request.GET.get('next') or reverse(
                     'staff_panel:dashboard')
                 return redirect(next_url)
             else:
+                # Increment failed attempts atomically
+                if ip_cache_key:
+                    if cache.get(ip_cache_key) is None:
+                        cache.set(ip_cache_key, 1, timeout=600)
+                    else:
+                        try:
+                            cache.incr(ip_cache_key)
+                        except ValueError:
+                            cache.set(ip_cache_key, 1, timeout=600)
                 error_message = "Invalid username or password."
         else:
             error_message = "Invalid username or password."
@@ -75,6 +104,7 @@ def staff_login(request):
     })
 
 
+@require_POST
 def staff_logout(request):
     logout(request)
     return redirect('staff_panel:login')
@@ -313,10 +343,21 @@ def enquiry_detail(request, enquiry_id):
     })
 
 
+@staff_login_required
+@require_POST
+def retry_enquiry_notification(request, enquiry_id):
+    enquiry = get_object_or_404(Enquiry, id=enquiry_id)
+    success, error_msg = send_enquiry_notification(enquiry)
+    if success:
+        messages.success(request, "Enquiry notification email sent successfully.")
+    else:
+        messages.error(request, f"Notification delivery failed: {error_msg}")
+    return redirect('staff_panel:enquiry_detail', enquiry_id=enquiry.id)
+
 
 @bookings_access_required
 def reports_view(request):
-    today = timezone.now().date()
+    today = timezone.localdate()
 
     range_type = request.GET.get('range_type', '').strip()
     from_str = request.GET.get('from', '').strip()

@@ -112,8 +112,40 @@ class StaffPanelAuthenticationTests(TestCase):
 
     def test_logout(self):
         self.client.login(username='staff_john', password='Password123!')
-        response = self.client.get(reverse('staff_panel:logout'))
-        self.assertRedirects(response, reverse('staff_panel:login'))
+        # GET is rejected with 405 Method Not Allowed (requires POST)
+        get_res = self.client.get(reverse('staff_panel:logout'))
+        self.assertEqual(get_res.status_code, 405)
+        # POST logs out and redirects to login
+        post_res = self.client.post(reverse('staff_panel:logout'))
+        self.assertRedirects(post_res, reverse('staff_panel:login'))
+
+    def test_staff_login_throttling(self):
+        """Staff login throttles after 5 consecutive failed attempts."""
+        from django.core.cache import cache
+        cache.clear()
+        login_url = reverse('staff_panel:login')
+
+        for i in range(5):
+            res = self.client.post(login_url, {'username': 'staff_john', 'password': 'WrongPassword!'})
+            self.assertEqual(res.status_code, 200)
+
+        # 6th attempt should be blocked by rate limit
+        res_blocked = self.client.post(login_url, {'username': 'staff_john', 'password': 'Password123!'})
+        self.assertEqual(res_blocked.status_code, 200)
+        self.assertContains(res_blocked, "Too many failed login attempts")
+
+    def test_staff_creation_password_validation(self):
+        """StaffCreationForm rejects weak passwords via Django validators."""
+        from staff_panel.forms import StaffCreateForm
+        # Short / common password
+        form = StaffCreateForm(data={
+            'username': 'new_staff_member',
+            'password': '123',
+            'access_bookings': True,
+            'access_website': False,
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('password', form.errors)
 
 
 class StaffPanelPermissionTests(TestCase):
@@ -365,7 +397,7 @@ class StaffBookingsAndRoomsTests(TestCase):
         today = timezone.now().date()
 
         # Booking 1: Confirmed and Overdue (check_out in past)
-        b1 = Booking.objects.create(
+        Booking.objects.create(
             room=self.room,
             guest=self.guest,
             check_in=today - timedelta(days=3),
@@ -375,7 +407,7 @@ class StaffBookingsAndRoomsTests(TestCase):
 
         # Booking 2: Held
         guest2 = Guest.objects.create(name='Bob Jones', phone='5551234567')
-        b2 = Booking.objects.create(
+        Booking.objects.create(
             room=self.room,
             guest=guest2,
             check_in=today,
@@ -816,7 +848,6 @@ class StaffReportsTests(TestCase):
 
     def setUp(self):
         self.client = Client()
-        from decimal import Decimal
 
         # Bookings staff user
         self.booking_staff = User.objects.create_user(
@@ -885,7 +916,7 @@ class StaffReportsTests(TestCase):
         today = timezone.now().date()
 
         # Booking 1: 2 nights @ Deluxe (3000/night = 6000 total), CONFIRMED
-        b1 = Booking.objects.create(
+        Booking.objects.create(
             room=self.room_101,
             guest=self.guest_alice,
             check_in=today,
@@ -895,7 +926,7 @@ class StaffReportsTests(TestCase):
         )
 
         # Booking 2: 3 nights @ Standard (1500/night = 4500 total), COMPLETED
-        b2 = Booking.objects.create(
+        Booking.objects.create(
             room=self.room_102,
             guest=self.guest_bob,
             check_in=today + timedelta(days=1),
@@ -905,7 +936,7 @@ class StaffReportsTests(TestCase):
         )
 
         # Booking 3: Cancelled booking
-        b3 = Booking.objects.create(
+        Booking.objects.create(
             room=self.room_101,
             guest=self.guest_bob,
             check_in=today + timedelta(days=5),
@@ -954,9 +985,7 @@ class StaffWebsiteContentTests(TestCase):
 
     def setUp(self):
         self.client = Client()
-        from django.core.files.uploadedfile import SimpleUploadedFile
         from content.models import RoomType, Facility, Attraction, ContactInformation
-        from bookings.models import Guest, Booking
 
         # Website staff user
         self.web_staff = User.objects.create_user(
@@ -1167,8 +1196,6 @@ class StaffWebsiteContentTests(TestCase):
 
     def test_contact_info_get_or_create_and_update(self):
         """ContactInformation form update reflects in DB and context processor."""
-        from content.models import ContactInformation
-
         self.client.login(username='web_content_staff', password='Password123!')
 
         res = self.client.post(reverse('staff_panel:website_contact'), {

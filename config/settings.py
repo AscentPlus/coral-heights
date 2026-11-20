@@ -231,3 +231,11 @@ PAYMENT_GATEWAY = env('PAYMENT_GATEWAY', default='mock')
 ALLOW_MOCK_PAYMENT = env.bool('ALLOW_MOCK_PAYMENT', default=False)
 DEMO_SHOW_OTP = env.bool('DEMO_SHOW_OTP', default=False)
 
+# Speed up test password hashing
+import sys
+if 'test' in sys.argv:
+    PASSWORD_HASHERS = [
+        'django.contrib.auth.hashers.MD5PasswordHasher',
+    ]
+
+

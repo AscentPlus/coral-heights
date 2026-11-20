@@ -111,6 +111,33 @@
         </div>
       </form>
     </div>
+
+    <!-- Email Notification Delivery Status & Staff Retry Action -->
+    <div class="rounded-xl p-5 border {% if enquiry.notification_sent %}bg-emerald-50/50 border-emerald-200/60{% else %}bg-rose-50/50 border-rose-200/60{% endif %} space-y-3 text-sm">
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h4 class="font-serif font-bold text-base {% if enquiry.notification_sent %}text-emerald-900{% else %}text-rose-900{% endif %}">
+            Email Notification Status
+          </h4>
+          <p class="text-xs {% if enquiry.notification_sent %}text-emerald-700{% else %}text-rose-700{% endif %} mt-0.5">
+            {% if enquiry.notification_sent %}
+              Notification email was successfully delivered to the hotel reservations desk.
+            {% else %}
+              Notification email delivery failed or is pending.
+              {% if enquiry.notification_error %}<span class="block text-xs font-mono mt-1 text-rose-800">Error: {{ enquiry.notification_error }}</span>{% endif %}
+            {% endif %}
+          </p>
+        </div>
+        <div>
+          <form method="POST" action="{% url 'staff_panel:retry_enquiry_notification' enquiry.id %}">
+            {% csrf_token %}
+            <button type="submit" class="px-4 py-2 text-xs font-bold rounded-xl transition-all shadow-sm cursor-pointer border {% if enquiry.notification_sent %}bg-white text-emerald-800 border-emerald-300 hover:bg-emerald-100{% else %}bg-rose-600 text-white border-rose-700 hover:bg-rose-700{% endif %}">
+              {% if enquiry.notification_sent %}Resend Notification{% else %}Retry Notification Delivery{% endif %}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 
 </div>

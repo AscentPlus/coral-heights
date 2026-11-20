@@ -10,9 +10,16 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.db import transaction
 from django.core.cache import cache
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 from content.models import RoomType, Room
 from .models import Guest, Booking, PhoneOTP
-from .services import get_available_rooms, get_available_rooms_count
+from .services import (
+    get_available_rooms,
+    get_available_rooms_count,
+    calculate_booking_pricing,
+)
+from .phone import canonicalize_phone, is_valid_phone
 from .otp_gateway import get_otp_gateway
 from .payment_gateway import get_payment_gateway
 from .constants import CANCELLATION_POLICY
@@ -21,9 +28,12 @@ from .constants import CANCELLATION_POLICY
 def parse_post_data(request):
     if request.content_type == 'application/json' and request.body:
         try:
-            return json.loads(request.body)
+            parsed = json.loads(request.body)
+            if isinstance(parsed, dict):
+                return parsed
+            return {}
         except Exception:
-            pass
+            return {}
     return request.POST
 
 
@@ -78,7 +88,7 @@ def check_availability(request):
             status=400
         )
 
-    today = timezone.now().date()
+    today = timezone.localdate()
     if check_in < today:
         return JsonResponse(
             {'error': 'Check-in date cannot be in the past.'},
@@ -91,6 +101,13 @@ def check_availability(request):
             status=400
         )
 
+    stay_days = (check_out - check_in).days
+    if stay_days > 30:
+        return JsonResponse(
+            {'error': 'Maximum stay limit is 30 days. For longer stays, please contact the hotel directly.'},
+            status=400
+        )
+
     try:
         room_type = RoomType.objects.get(slug=room_type_slug)
     except RoomType.DoesNotExist:
@@ -100,6 +117,8 @@ def check_availability(request):
         )
 
     # Validate guest bounds & room capacity if provided
+    adults = 1
+    children = 0
     adults_raw = request.GET.get('adults')
     children_raw = request.GET.get('children')
     if adults_raw is not None or children_raw is not None:
@@ -120,14 +139,16 @@ def check_availability(request):
             }, status=400)
 
     available_count = get_available_rooms_count(room_type, check_in, check_out)
-    nights = (check_out - check_in).days
+    pricing = calculate_booking_pricing(room_type, check_in, check_out, adults, children)
 
     return JsonResponse({
         'available': available_count > 0,
         'count': available_count,
         'room_type_name': room_type.name,
-        'price_per_night': f"{room_type.base_price_per_night:.2f}",
-        'nights': nights
+        'price_per_night': f"{pricing['price_per_night']:.2f}",
+        'nights': pricing['nights'],
+        'total_amount': f"{pricing['total_amount']:.2f}",
+        'cancellation_policy': pricing['cancellation_policy'],
     })
 
 
@@ -137,14 +158,15 @@ def get_client_ip(request):
     or fall back to REMOTE_ADDR. When parsing multi-hop headers like X-Forwarded-For,
     trust the last hop appended by the trusted reverse proxy rather than client-controlled first values.
     """
-    header_name = getattr(settings, 'CLIENT_IP_HEADER', 'HTTP_X_FORWARDED_FOR')
-    if header_name:
-        raw_val = request.META.get(header_name, '').strip()
+    header_name = getattr(settings, 'CLIENT_IP_HEADER', None)
+    if getattr(settings, 'TRUST_FORWARDED_FOR', False) or header_name:
+        header = header_name or 'HTTP_X_FORWARDED_FOR'
+        raw_val = request.META.get(header, '').strip()
         if raw_val:
             hops = [h.strip() for h in raw_val.split(',') if h.strip()]
             if hops:
                 return hops[-1]
-    return request.META.get('REMOTE_ADDR', '').strip()
+    return request.META.get('REMOTE_ADDR', '127.0.0.1').strip()
 
 
 def send_otp(request):
@@ -152,17 +174,19 @@ def send_otp(request):
         return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
 
     data = parse_post_data(request)
-    phone = str(data.get('phone', '')).strip()
+    if not isinstance(data, dict):
+        return JsonResponse({'success': False, 'error': 'Invalid request format.'}, status=400)
 
-    if not phone or not phone.replace('+', '').isdigit() or len(phone.replace('+', '')) < 10:
-        return JsonResponse({'success': False, 'error': 'Please enter a valid 10-digit phone number.'}, status=400)
+    raw_phone = str(data.get('phone') or '').strip()
+    phone = canonicalize_phone(raw_phone)
+
+    if not is_valid_phone(phone):
+        return JsonResponse({'success': False, 'error': 'Please enter a valid phone number.'}, status=400)
 
     # Rate limiting: max 5 sends per IP per 10 minutes (600 seconds)
     client_ip = get_client_ip(request)
-    ip_cache_key = None
-    ip_count = None
-    if client_ip:
-        ip_cache_key = f"otp_ratelimit_ip_{client_ip}"
+    ip_cache_key = f"otp_ratelimit_ip_{client_ip}" if client_ip else None
+    if ip_cache_key:
         ip_count = cache.get(ip_cache_key)
         if ip_count is not None and ip_count >= 5:
             return JsonResponse({
@@ -172,7 +196,7 @@ def send_otp(request):
 
     now = timezone.now()
 
-    # Rate limiting: check if non-expired OTP for this phone was created < 30 seconds ago
+    # Rate limiting: check if non-expired OTP for this canonical phone was created < 30 seconds ago
     recent_otp = PhoneOTP.objects.filter(
         phone=phone).order_by('-created_at').first()
     if recent_otp and (now - recent_otp.created_at).total_seconds() < 30:
@@ -190,7 +214,7 @@ def send_otp(request):
     )
 
     if ip_cache_key:
-        if ip_count is None:
+        if cache.get(ip_cache_key) is None:
             cache.set(ip_cache_key, 1, timeout=600)
         else:
             try:
@@ -205,7 +229,8 @@ def send_otp(request):
         'success': True,
         'cooldown_seconds': 30
     }
-    if getattr(settings, 'DEBUG', False) or getattr(settings, 'DEMO_SHOW_OTP', False):
+    # Explicit demo flag: only return debug_otp when DEMO_SHOW_OTP is True (disabled in production)
+    if getattr(settings, 'DEMO_SHOW_OTP', False):
         res_payload['debug_otp'] = code
 
     return JsonResponse(res_payload)
@@ -216,18 +241,45 @@ def verify_and_hold(request):
         return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
 
     data = parse_post_data(request)
+    if not isinstance(data, dict):
+        return JsonResponse({'success': False, 'error': 'Invalid request format.'}, status=400)
 
-    phone = str(data.get('phone', '')).strip()
-    code = str(data.get('code', '')).strip()
-    guest_name = str(data.get('guest_name', '')).strip()
-    guest_email = str(data.get('guest_email', '')).strip() or None
-    room_type_slug = str(data.get('room_type', '')).strip()
-    check_in_str = str(data.get('check_in', '')).strip()
-    check_out_str = str(data.get('check_out', '')).strip()
+    raw_phone = str(data.get('phone') or '').strip()
+    phone = canonicalize_phone(raw_phone)
+    code = str(data.get('code') or '').strip()
+    guest_name = str(data.get('guest_name') or '').strip()
+    raw_email = str(data.get('guest_email') or '').strip()
+    guest_email = raw_email if raw_email and raw_email.lower() not in ('null', 'none', 'undefined') else None
+    room_type_slug = str(data.get('room_type') or '').strip()
+    check_in_str = str(data.get('check_in') or '').strip()
+    check_out_str = str(data.get('check_out') or '').strip()
+
+    if not phone or not is_valid_phone(phone):
+        return JsonResponse({'success': False, 'error': 'Please enter a valid phone number.'}, status=400)
+
+    if not code:
+        return JsonResponse({'success': False, 'error': 'Please enter the verification code.'}, status=400)
+
+    if not guest_name:
+        return JsonResponse({'success': False, 'error': 'Please enter the guest name.'}, status=400)
+
+    if len(guest_name) > 100:
+        return JsonResponse({'success': False, 'error': 'Guest name must be 100 characters or fewer.'}, status=400)
+
+    if guest_email:
+        try:
+            validate_email(guest_email)
+        except ValidationError:
+            return JsonResponse({'success': False, 'error': 'Please enter a valid email address.'}, status=400)
+
+    if not room_type_slug or not check_in_str or not check_out_str:
+        return JsonResponse({'success': False, 'error': 'All booking fields must be provided.'}, status=400)
 
     try:
-        adults = int(data.get('adults', 1))
-        children = int(data.get('children', 0))
+        raw_adults = data.get('adults', 1)
+        adults = int(1 if raw_adults is None else raw_adults)
+        raw_children = data.get('children', 0)
+        children = int(0 if raw_children is None else raw_children)
     except (ValueError, TypeError):
         return JsonResponse({'success': False, 'error': 'Adults and children must be valid numbers.'}, status=400)
 
@@ -236,28 +288,6 @@ def verify_and_hold(request):
     if children < 0:
         return JsonResponse({'success': False, 'error': 'Children cannot be negative.'}, status=400)
 
-    if not phone or not code or not guest_name or not room_type_slug or not check_in_str or not check_out_str:
-        return JsonResponse({'success': False, 'error': 'All required fields must be provided.'}, status=400)
-
-    now = timezone.now()
-
-    # Find unverified PhoneOTP for phone
-    otp = PhoneOTP.objects.filter(
-        phone=phone, is_verified=False).order_by('-created_at').first()
-    if not otp or otp.expires_at <= now:
-        return JsonResponse({'success': False, 'error': 'OTP code has expired or is invalid. Please request a new code.'}, status=400)
-
-    if otp.attempts >= 5:
-        return JsonResponse({'success': False, 'error': 'Too many failed attempts. Please request a new code.'}, status=429)
-
-    if otp.code != code:
-        otp.attempts += 1
-        otp.save()
-        remaining = max(0, 5 - otp.attempts)
-        if remaining == 0:
-            return JsonResponse({'success': False, 'error': 'Too many failed attempts. Please request a new code.'}, status=429)
-        return JsonResponse({'success': False, 'error': f'Invalid code. {remaining} attempt{"s" if remaining > 1 else ""} remaining.'}, status=400)
-
     # Validate dates
     try:
         check_in = parse_date_input(check_in_str)
@@ -265,8 +295,15 @@ def verify_and_hold(request):
     except ValueError:
         return JsonResponse({'success': False, 'error': 'Invalid date format. Please use DD-MM-YYYY or YYYY-MM-DD.'}, status=400)
 
-    if check_in < now.date() or check_out <= check_in:
-        return JsonResponse({'success': False, 'error': 'Invalid date selection.'}, status=400)
+    today = timezone.localdate()
+    if check_in < today:
+        return JsonResponse({'success': False, 'error': 'Check-in date cannot be in the past.'}, status=400)
+    if check_out <= check_in:
+        return JsonResponse({'success': False, 'error': 'Check-out date must be after check-in date.'}, status=400)
+
+    stay_days = (check_out - check_in).days
+    if stay_days > 30:
+        return JsonResponse({'success': False, 'error': 'Maximum stay limit is 30 days.'}, status=400)
 
     try:
         room_type = RoomType.objects.get(slug=room_type_slug)
@@ -280,13 +317,36 @@ def verify_and_hold(request):
             'error': f'Total guests ({adults + children}) exceed maximum capacity of {room_type.max_occupancy} for {room_type.name}.'
         }, status=400)
 
+    now = timezone.now()
+
+    # Atomic hold and OTP verification: lock PhoneOTP and candidate Room rows
     with transaction.atomic():
-        # Evaluate queryset to acquire row locks on candidate rooms
+        # Atomically lock and retrieve unverified OTP row
+        otp = PhoneOTP.objects.select_for_update().filter(
+            phone=phone, is_verified=False
+        ).order_by('-created_at').first()
+
+        if not otp or otp.expires_at <= now:
+            return JsonResponse({'success': False, 'error': 'OTP code has expired or is invalid. Please request a new code.'}, status=400)
+
+        if otp.attempts >= 5:
+            return JsonResponse({'success': False, 'error': 'Too many failed attempts. Please request a new code.'}, status=429)
+
+        if otp.code != code:
+            otp.attempts += 1
+            otp.save(update_fields=['attempts'])
+            remaining = max(0, 5 - otp.attempts)
+            if remaining == 0:
+                return JsonResponse({'success': False, 'error': 'Too many failed attempts. Please request a new code.'}, status=429)
+            return JsonResponse({'success': False, 'error': f'Invalid code. {remaining} attempt{"s" if remaining > 1 else ""} remaining.'}, status=400)
+
+        # Acquire row locks on candidate rooms to prevent race conditions
         list(Room.objects.select_for_update().filter(room_type=room_type))
 
         # Re-check availability right now against locked candidate rooms
         available_rooms = get_available_rooms(room_type, check_in, check_out)
         if not available_rooms.exists():
+            # Room sold out! Crucially, do NOT set otp.is_verified=True, so guest can try other dates
             return JsonResponse(
                 {'success': False, 'error': 'Sorry, this room type just sold out for these dates. Please search for alternative options.'},
                 status=409
@@ -294,9 +354,9 @@ def verify_and_hold(request):
 
         room = available_rooms.first()
 
-        # Mark OTP verified now that room hold is guaranteed
+        # Mark OTP verified atomically now that room hold is guaranteed
         otp.is_verified = True
-        otp.save()
+        otp.save(update_fields=['is_verified'])
 
         # Guest lookup / creation
         guest, created = Guest.objects.get_or_create(
@@ -310,8 +370,7 @@ def verify_and_hold(request):
                 guest.email = guest_email
             guest.save()
 
-        nights = (check_out - check_in).days
-        total_amount = room_type.base_price_per_night * nights
+        pricing = calculate_booking_pricing(room_type, check_in, check_out, adults, children)
         hold_expires_at = now + timedelta(minutes=15)
 
         booking = Booking.objects.create(
@@ -323,7 +382,7 @@ def verify_and_hold(request):
             children=children,
             status=Booking.STATUS_HELD,
             hold_expires_at=hold_expires_at,
-            total_amount=total_amount
+            total_amount=pricing['total_amount']
         )
 
     return JsonResponse({
@@ -336,9 +395,9 @@ def verify_and_hold(request):
         'check_out': check_out.strftime('%Y-%m-%d'),
         'check_in_display': check_in.strftime('%d-%m-%Y'),
         'check_out_display': check_out.strftime('%d-%m-%Y'),
-        'nights': nights,
-        'price_per_night': f"{room_type.base_price_per_night:.2f}",
-        'total_amount': f"{total_amount:.2f}",
+        'nights': pricing['nights'],
+        'price_per_night': f"{pricing['price_per_night']:.2f}",
+        'total_amount': f"{pricing['total_amount']:.2f}",
         'hold_expires_at': hold_expires_at.isoformat()
     })
 
@@ -346,6 +405,13 @@ def verify_and_hold(request):
 def mock_pay(request, booking_id):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+
+    # In production, strictly reject mock payment unless ALLOW_MOCK_PAYMENT is explicitly enabled
+    if not getattr(settings, 'DEBUG', False) and not getattr(settings, 'ALLOW_MOCK_PAYMENT', False):
+        return JsonResponse({
+            'success': False,
+            'error': 'Online payment is not enabled in production. Please contact reservations directly.'
+        }, status=503)
 
     data = parse_post_data(request)
     payment_token = (
@@ -406,19 +472,15 @@ def mock_pay(request, booking_id):
             return JsonResponse({'success': False, 'error': 'Payment failed. Please try again.'}, status=400)
 
 
-
 def _check_receipt_access(request, booking, token):
     """
     Shared access-control check for both HTML and PDF receipt views.
-    Returns True if access is permitted, False otherwise.
-
     Access is granted if:
-    - The user is authenticated and has bookings-panel access (staff bypass), OR
+    - The user is authenticated staff with bookings-panel access, OR
     - The provided token matches the booking's access_token.
     """
-    is_staff_viewer = request.user.is_authenticated and has_bookings_access(
-        request.user)
-    return is_staff_viewer or token == booking.access_token
+    is_staff_viewer = request.user.is_authenticated and has_bookings_access(request.user)
+    return is_staff_viewer or (token and token == booking.access_token)
 
 
 def view_receipt(request, booking_id, token):
@@ -427,45 +489,35 @@ def view_receipt(request, booking_id, token):
     if not _check_receipt_access(request, booking, token):
         raise Http404()
 
-    if booking.status != Booking.STATUS_CONFIRMED:
+    if booking.status not in (Booking.STATUS_CONFIRMED, Booking.STATUS_COMPLETED):
         raise Http404()
 
-    return render(request, 'bookings/receipt.html', {
+    response = render(request, 'bookings/receipt.html', {
         'booking': booking,
         'cancellation_policy': CANCELLATION_POLICY,
     })
+    response['Cache-Control'] = 'private, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Referrer-Policy'] = 'no-referrer'
+    return response
 
 
 def view_receipt_pdf(request, booking_id, token):
-    """
-    Renders the booking receipt as a downloadable PDF via WeasyPrint.
-
-    Uses the same access-control check as view_receipt (staff bypass or valid token).
-    Returns the PDF as an attachment so browsers download it directly.
-
-    NOTE: WeasyPrint requires native system libraries (Pango/Cairo) on the server.
-    On Ubuntu: apt install libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0
-    On Windows local dev: install the GTK3 runtime from WeasyPrint's Windows docs.
-    """
     booking = get_object_or_404(Booking, id=booking_id)
 
     if not _check_receipt_access(request, booking, token):
         raise Http404()
 
-    if booking.status != Booking.STATUS_CONFIRMED:
+    if booking.status not in (Booking.STATUS_CONFIRMED, Booking.STATUS_COMPLETED):
         raise Http404()
 
-    # Render the HTML receipt template to a string
     html_string = render_to_string('bookings/receipt.html', {
         'booking': booking,
         'cancellation_policy': CANCELLATION_POLICY,
-        # WeasyPrint needs an absolute base_url to resolve static file paths
-        # (fonts, images). We pass the request's base URL for this.
         'request': request,
         'is_pdf': True,
     }, request=request)
 
-    # Convert HTML to PDF bytes via WeasyPrint
     from weasyprint import HTML
     pdf_bytes = HTML(string=html_string,
                      base_url=request.build_absolute_uri('/')).write_pdf()
@@ -473,6 +525,9 @@ def view_receipt_pdf(request, booking_id, token):
     reference = f"CH-{booking.id:05d}"
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="Coral-Heights-Receipt-{reference}.pdf"'
+    response['Cache-Control'] = 'private, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Referrer-Policy'] = 'no-referrer'
     return response
 
 
@@ -524,7 +579,7 @@ def booking_page(request):
     total_amount = 0.0
     error_message = None
 
-    today = timezone.now().date()
+    today = timezone.localdate()
     tomorrow = today + timedelta(days=1)
 
     if room_type_slug and check_in_str and check_out_str:
@@ -539,14 +594,17 @@ def booking_page(request):
                 error_message = "Check-in date cannot be in the past."
             elif check_out <= check_in:
                 error_message = "Check-out date must be after check-in date."
+            elif (check_out - check_in).days > 30:
+                error_message = "Maximum stay limit is 30 days. For longer stays, please contact the hotel directly."
             else:
                 try:
                     selected_room = RoomType.objects.get(slug=room_type_slug)
                     nights = (check_out - check_in).days
                     available_count = get_available_rooms_count(selected_room, check_in, check_out)
                     is_available = available_count > 0
-                    price_per_night = float(selected_room.base_price_per_night)
-                    total_amount = price_per_night * nights
+                    pricing = calculate_booking_pricing(selected_room, check_in, check_out, adults, children)
+                    price_per_night = float(pricing['price_per_night'])
+                    total_amount = float(pricing['total_amount'])
 
                     if invalid_occupancy_input:
                         error_message = "Invalid guest count provided."
@@ -582,6 +640,12 @@ def booking_page(request):
     check_in_display = format_date_dmy(check_in_str)
     check_out_display = format_date_dmy(check_out_str)
 
+    online_checkout_available = (
+        getattr(settings, 'DEBUG', False)
+        or getattr(settings, 'ALLOW_MOCK_PAYMENT', False)
+        or getattr(settings, 'PAYMENT_GATEWAY', 'mock') != 'mock'
+    )
+
     context = {
         'room_types': all_room_types,
         'selected_room': selected_room,
@@ -601,6 +665,7 @@ def booking_page(request):
         'today': today.strftime('%Y-%m-%d'),
         'tomorrow': tomorrow.strftime('%Y-%m-%d'),
         'cancellation_policy': CANCELLATION_POLICY,
+        'online_checkout_available': online_checkout_available,
     }
     return render(request, 'bookings/booking_page.html', context)
 

@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ room_type.name }} — Hotel Coral Heights, Ambalapuzha{% endblock %}
+{% block meta_description %}
+<meta name="description" content="{{ room_type.short_description|default:'Discover spacious, comfortable accommodations at Hotel Coral Heights in Ambalapuzha, Kerala.' }}" />
+{% endblock %}
+{% block body_class %}subpage{% endblock %}
+
+{% block content %}
+<main class="pt-24 pb-20 bg-watermark">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    
+    <!-- Room Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      
+      <!-- Left Column: Photos & Details (7 cols) -->
+      <div class="lg:col-span-7 space-y-8">
+        
+        <!-- Room Photo -->
+        <div class="relative rounded-2xl overflow-hidden shadow-xl border border-teal-900/10 bg-slate-900 aspect-[16/10]">
+          <img
+            src="{{ room_type.get_image_url }}"
+            alt="{{ room_type.name }} at Hotel Coral Heights"
+            class="w-full h-full object-cover"
+          />
+        </div>
+
+        <!-- Room Overview -->
+        <div class="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-teal-900/10 space-y-6">
+          <div>
+            <span class="text-gold text-xs font-bold uppercase tracking-widest block mb-1">Accommodation</span>
+            <h1 class="font-serif text-3xl sm:text-4xl text-teal-950 font-bold">{{ room_type.name }}</h1>
+          </div>
+
+          <!-- Feature Pills -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-2 border-t border-gray-100">
+            <div class="bg-cream rounded-xl p-3.5 text-center border border-teal-900/5">
+              <span class="text-xs text-gray-500 font-medium block">Bed Type</span>
+              <span class="text-sm font-bold text-teal-950 mt-0.5 block">{{ room_type.bed_type|default:"King / Twin" }}</span>
+            </div>
+            <div class="bg-cream rounded-xl p-3.5 text-center border border-teal-900/5">
+              <span class="text-xs text-gray-500 font-medium block">Max Capacity</span>
+              <span class="text-sm font-bold text-teal-950 mt-0.5 block">{{ room_type.max_occupancy }} Guests</span>
+            </div>
+            <div class="bg-cream rounded-xl p-3.5 text-center border border-teal-900/5 col-span-2 sm:col-span-1">
+              <span class="text-xs text-gray-500 font-medium block">Starting Tariff</span>
+              <span class="text-sm font-bold text-teal-950 mt-0.5 block">₹{{ room_type.base_price_per_night|floatformat:"0" }} <span class="text-xs font-normal text-gray-500">/ night</span></span>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div class="text-gray-700 text-sm leading-relaxed space-y-4 pt-2">
+            {% if room_type.long_description %}
+              <p>{{ room_type.long_description|linebreaksbr }}</p>
+            {% else %}
+              <p>{{ room_type.short_description }}</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Room Inclusions & Verified Amenities -->
+        <div class="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-teal-900/10 space-y-6">
+          <h2 class="font-serif text-xl text-teal-950 font-bold border-b border-gray-100 pb-3">Room Inclusions &amp; Facilities</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <div class="flex items-center gap-3 text-gray-700">
+              <svg class="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              <span>Complimentary high-speed Wi-Fi</span>
+            </div>
+            <div class="flex items-center gap-3 text-gray-700">
+              <svg class="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              <span>Individual climate control (A/C)</span>
+            </div>
+            <div class="flex items-center gap-3 text-gray-700">
+              <svg class="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              <span>Complimentary mineral water</span>
+            </div>
+            <div class="flex items-center gap-3 text-gray-700">
+              <svg class="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              <span>Free on-site parking</span>
+            </div>
+            <div class="flex items-center gap-3 text-gray-700">
+              <svg class="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              <span>Elevator access to all floors</span>
+            </div>
+            <div class="flex items-center gap-3 text-gray-700">
+              <svg class="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              <span>Daily housekeeping &amp; fresh linens</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Booking Card & Policies (5 cols) -->
+      <div class="lg:col-span-5 space-y-6">
+        
+        <!-- Reservation Box -->
+        <div class="bg-white rounded-2xl p-6 sm:p-8 shadow-xl border border-teal-900/15 sticky top-28 space-y-6">
+          <div class="border-b border-gray-100 pb-4">
+            <span class="text-xs text-gray-500 uppercase font-semibold">Published Tariff</span>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span class="font-serif text-3xl font-bold text-teal-950">₹{{ room_type.base_price_per_night|floatformat:"0" }}</span>
+              <span class="text-xs text-gray-500">per night (taxes included)</span>
+            </div>
+          </div>
+
+          <!-- Direct Booking Link preserving dates & guest counts -->
+          <div class="space-y-4">
+            <a
+              href="{% url 'bookings:booking_page' %}?room_type={{ room_type.slug }}{% if check_in %}&check_in={{ check_in }}{% endif %}{% if check_out %}&check_out={{ check_out }}{% endif %}{% if adults %}&adults={{ adults }}{% endif %}{% if children %}&children={{ children }}{% endif %}"
+              class="w-full inline-flex items-center justify-center py-3.5 px-6 bg-gold hover:bg-gold-light text-teal-950 font-bold text-sm rounded-xl transition-all shadow-md text-center"
+            >
+              Book {{ room_type.name }}
+            </a>
+            
+            <a
+              href="tel:{{ contact_info.primary_phone|default:'+919496200777' }}"
+              class="w-full inline-flex items-center justify-center py-3 px-6 bg-cream hover:bg-gray-100 text-teal-900 font-semibold text-xs rounded-xl transition-all border border-teal-900/10 text-center gap-2"
+            >
+              <svg class="w-4 h-4 text-teal-800" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+              Direct Reservations Call
+            </a>
+          </div>
+
+          <!-- Verified Hotel Policies -->
+          <div class="pt-4 border-t border-gray-100 space-y-3 text-xs text-gray-600">
+            <div class="flex justify-between py-1">
+              <span class="font-medium text-gray-500">Check-in</span>
+              <span class="font-semibold text-gray-800">{{ hotel_info.check_in_time|default:"12:00 PM" }}</span>
+            </div>
+            <div class="flex justify-between py-1">
+              <span class="font-medium text-gray-500">Check-out</span>
+              <span class="font-semibold text-gray-800">{{ hotel_info.check_out_time|default:"11:00 AM" }}</span>
+            </div>
+            <div class="flex justify-between py-1">
+              <span class="font-medium text-gray-500">Pet Policy</span>
+              <span class="font-semibold text-gray-800">{{ hotel_info.pet_policy|default:"Pets not allowed" }}</span>
+            </div>
+            <div class="flex justify-between py-1">
+              <span class="font-medium text-gray-500">Cancellation</span>
+              <span class="font-semibold text-gray-800">Free up to 24h before check-in</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Other Room Types -->
+    {% if other_rooms %}
+    <div class="mt-20 pt-12 border-t border-teal-900/10">
+      <h2 class="font-serif text-2xl text-teal-950 font-bold mb-6">Explore Other Accommodations</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for other in other_rooms %}
+          <a href="{% url 'content:room_detail' other.slug %}" class="bg-white rounded-xl overflow-hidden border border-teal-900/10 shadow-sm hover:shadow-md transition-shadow group flex flex-col">
+            <div class="aspect-[16/10] bg-slate-900 overflow-hidden">
+              <img src="{{ other.get_image_url }}" alt="{{ other.name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+            </div>
+            <div class="p-5 flex-1 flex flex-col justify-between">
+              <div>
+                <h3 class="font-serif font-bold text-lg text-teal-950 group-hover:text-gold transition-colors">{{ other.name }}</h3>
+                <p class="text-xs text-gray-500 mt-1">Up to {{ other.max_occupancy }} guests · {{ other.bed_type|default:"Comfortable bedding" }}</p>
+              </div>
+              <div class="mt-4 flex items-center justify-between pt-3 border-t border-gray-100">
+                <span class="text-sm font-bold text-teal-950">₹{{ other.base_price_per_night|floatformat:"0" }} <span class="text-xs font-normal text-gray-500">/ night</span></span>
+                <span class="text-xs font-semibold text-gold group-hover:underline">View Room &rarr;</span>
+              </div>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</main>
+{% endblock %}
+

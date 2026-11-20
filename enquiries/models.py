@@ -37,6 +37,10 @@ class Enquiry(models.Model):
         max_length=20, choices=STATUS_CHOICES, default=STATUS_NEW)
     staff_remarks = models.TextField(
         blank=True, default='', verbose_name="Staff Remarks")
+    notification_sent = models.BooleanField(
+        default=False, verbose_name="Notification Sent")
+    notification_error = models.TextField(
+        blank=True, default='', verbose_name="Notification Error")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

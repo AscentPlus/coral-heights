@@ -227,6 +227,66 @@ class PublicBookingFlowTestCase(TestCase):
         self.assertEqual(booking.children, 1)
         self.assertIsNotNone(booking.hold_expires_at)
 
+    def test_verify_and_hold_with_null_or_empty_email_succeeds(self):
+        """Email is optional: null (None), empty string, or omitted email must succeed and not fail validation."""
+        # Case 1: JSON null (Python None)
+        self.client.post('/bookings/otp/send/', data={'phone': '9876543210'}, content_type='application/json')
+        otp1 = PhoneOTP.objects.filter(phone='9876543210').last()
+        res1 = self.client.post('/bookings/otp/verify-and-hold/', data={
+            'phone': '9876543210',
+            'code': otp1.code,
+            'guest_name': 'No Email Guest',
+            'guest_email': None,
+            'room_type': 'deluxe-suite',
+            'check_in': self.check_in,
+            'check_out': self.check_out,
+            'adults': 1,
+            'children': 0
+        }, content_type='application/json')
+        self.assertEqual(res1.status_code, 200)
+        guest1 = Guest.objects.get(phone='9876543210')
+        self.assertIsNone(guest1.email)
+
+        # Clear bookings for next case
+        Booking.objects.all().delete()
+        Guest.objects.all().delete()
+
+        # Case 2: Empty string
+        self.client.post('/bookings/otp/send/', data={'phone': '9876543211'}, content_type='application/json')
+        otp2 = PhoneOTP.objects.filter(phone='9876543211').last()
+        res2 = self.client.post('/bookings/otp/verify-and-hold/', data={
+            'phone': '9876543211',
+            'code': otp2.code,
+            'guest_name': 'Empty Email Guest',
+            'guest_email': '',
+            'room_type': 'deluxe-suite',
+            'check_in': self.check_in,
+            'check_out': self.check_out,
+            'adults': 1,
+            'children': 0
+        }, content_type='application/json')
+        self.assertEqual(res2.status_code, 200)
+        guest2 = Guest.objects.get(phone='9876543211')
+        self.assertIsNone(guest2.email)
+
+    def test_verify_and_hold_with_invalid_email_fails(self):
+        """Invalid non-empty email returns HTTP 400."""
+        self.client.post('/bookings/otp/send/', data={'phone': '9876543212'}, content_type='application/json')
+        otp = PhoneOTP.objects.filter(phone='9876543212').last()
+        res = self.client.post('/bookings/otp/verify-and-hold/', data={
+            'phone': '9876543212',
+            'code': otp.code,
+            'guest_name': 'Invalid Email Guest',
+            'guest_email': 'not-an-email-address',
+            'room_type': 'deluxe-suite',
+            'check_in': self.check_in,
+            'check_out': self.check_out,
+            'adults': 1,
+            'children': 0
+        }, content_type='application/json')
+        self.assertEqual(res.status_code, 400)
+        self.assertEqual(res.json()['error'], 'Please enter a valid email address.')
+
     def test_verify_and_hold_sold_out_409(self):
         """Returns 409 status code if room is booked before OTP verification."""
         # Create an existing confirmed booking that takes our only room
@@ -849,6 +909,129 @@ class ConcurrencyDoubleBookingTestCase(TransactionTestCase):
         ).count()
         self.assertEqual(holds_count, 1)
 
+    def test_same_otp_concurrency_creates_exactly_one_hold(self):
+        """
+        Concurrency check for same OTP:
+        When multiple rooms are available, two simultaneous requests with the SAME OTP
+        must produce exactly one hold and one rejection (atomic OTP consumption).
+        """
+        check_in = (date.today() + timedelta(days=15)).strftime('%Y-%m-%d')
+        check_out = (date.today() + timedelta(days=17)).strftime('%Y-%m-%d')
+
+        room_type = RoomType.objects.create(
+            name="Multi Room Type",
+            slug="multi-race-room",
+            base_price_per_night=3000.00,
+            max_occupancy=2
+        )
+        Room.objects.create(room_type=room_type, room_number="M-101")
+        Room.objects.create(room_type=room_type, room_number="M-102")
+
+        otp = PhoneOTP.objects.create(
+            phone="9876543210",
+            code="654321",
+            expires_at=timezone.now() + timedelta(minutes=10),
+            is_verified=False
+        )
+
+        results = []
+        barrier = threading.Barrier(2)
+
+        def attempt_hold_same_otp(name):
+            from django.db import connection
+            connection.close()
+            client = Client()
+            payload = {
+                'phone': "9876543210",
+                'code': "654321",
+                'guest_name': name,
+                'room_type': 'multi-race-room',
+                'check_in': check_in,
+                'check_out': check_out,
+                'adults': 2,
+                'children': 0
+            }
+            try:
+                barrier.wait(timeout=5)
+            except threading.BrokenBarrierError:
+                pass
+            res = client.post(
+                '/bookings/otp/verify-and-hold/',
+                data=payload,
+                content_type='application/json'
+            )
+            results.append((res.status_code, res.json()))
+            connection.close()
+
+        t1 = threading.Thread(target=attempt_hold_same_otp, args=("Same OTP Guest 1",))
+        t2 = threading.Thread(target=attempt_hold_same_otp, args=("Same OTP Guest 2",))
+
+        t1.start()
+        t2.start()
+        t1.join(timeout=10)
+        t2.join(timeout=10)
+
+        status_codes = [r[0] for r in results]
+        self.assertEqual(len(status_codes), 2)
+        # Exactly one request succeeds (200), and the other is rejected (400) because OTP was already consumed
+        self.assertEqual(status_codes.count(200), 1)
+        self.assertEqual(status_codes.count(400), 1)
+
+        # Assert exactly one booking was created
+        holds_count = Booking.objects.filter(
+            room__room_type=room_type,
+            status=Booking.STATUS_HELD
+        ).count()
+        self.assertEqual(holds_count, 1)
+
+        # OTP is now marked verified
+        otp.refresh_from_db()
+        self.assertTrue(otp.is_verified)
+
+    def test_failed_hold_due_to_sold_out_preserves_otp(self):
+        """
+        When a room is sold out (409 Conflict), the OTP must NOT be consumed
+        so the guest can choose another room or date.
+        """
+        check_in = (date.today() + timedelta(days=20)).strftime('%Y-%m-%d')
+        check_out = (date.today() + timedelta(days=22)).strftime('%Y-%m-%d')
+
+        room_type = RoomType.objects.create(
+            name="Zero Availability Room",
+            slug="zero-avail-room",
+            base_price_per_night=2500.00,
+            max_occupancy=2
+        )
+        # No rooms created for this room type -> 0 available
+
+        otp = PhoneOTP.objects.create(
+            phone="9876543222",
+            code="999888",
+            expires_at=timezone.now() + timedelta(minutes=10),
+            is_verified=False
+        )
+
+        res = self.client.post(
+            '/bookings/otp/verify-and-hold/',
+            data={
+                'phone': "9876543222",
+                'code': "999888",
+                'guest_name': "Sold Out Guest",
+                'room_type': 'zero-avail-room',
+                'check_in': check_in,
+                'check_out': check_out,
+                'adults': 1,
+                'children': 0
+            },
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 409)
+
+        # OTP must NOT be consumed!
+        otp.refresh_from_db()
+        self.assertFalse(otp.is_verified)
+
+
 
 class InputValidationHardeningTestCase(TestCase):
     def setUp(self):
@@ -1111,7 +1294,6 @@ class PaymentSafetyHardeningTestCase(TestCase):
         self.assertIn("no longer held", res2.json()['error'].lower())
 
     def test_mock_gateway_refuses_when_debug_false_without_allow_mock_payment(self):
-        from django.conf import settings
         with self.settings(DEBUG=False, ALLOW_MOCK_PAYMENT=False):
             with self.assertRaises(ImproperlyConfigured):
                 MockPaymentGateway()

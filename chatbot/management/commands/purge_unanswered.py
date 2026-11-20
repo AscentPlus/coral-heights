@@ -23,7 +23,6 @@ class Command(BaseCommand):
             is_handled=True,
             last_asked__lt=cutoff
         )
-        count = qs.count()
         deleted_count, _ = qs.delete()
 
         self.stdout.write(

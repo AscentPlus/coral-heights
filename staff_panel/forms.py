@@ -57,6 +57,14 @@ class StaffCreateForm(forms.Form):
                 "A user with this username already exists.")
         return username
 
+    def clean_password(self):
+        password = self.cleaned_data.get('password')
+        if password:
+            from django.contrib.auth.password_validation import validate_password
+            username = self.cleaned_data.get('username')
+            validate_password(password, user=User(username=username))
+        return password
+
     def clean(self):
         cleaned_data = super().clean()
         bookings = cleaned_data.get('access_bookings')
@@ -88,7 +96,7 @@ class StaffCreateForm(forms.Form):
             is_active=True
         )
 
-        profile = StaffProfile.objects.create(
+        StaffProfile.objects.create(
             user=user,
             access_level=access_level
         )

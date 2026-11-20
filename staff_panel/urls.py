@@ -16,6 +16,8 @@ urlpatterns = [
     path('enquiries/', views.enquiries_list, name='enquiries'),
     path('enquiries/<int:enquiry_id>/',
          views.enquiry_detail, name='enquiry_detail'),
+    path('enquiries/<int:enquiry_id>/retry-notification/',
+         views.retry_enquiry_notification, name='retry_enquiry_notification'),
     path('rooms/', views.rooms_list, name='rooms'),
     path('reports/', views.reports_view, name='reports'),
     path('website/', views.website_dashboard, name='website'),

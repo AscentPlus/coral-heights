@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Location &amp; How to Reach — Hotel Coral Heights, Ambalapuzha{% endblock %}
+{% block meta_description %}
+<meta name="description" content="Directions, nearby transit hubs, and essential places around Hotel Coral Heights in Ambalapuzha, Alappuzha. Located near NH 66 and Ambalapuzha Railway Station." />
+{% endblock %}
+{% block body_class %}subpage{% endblock %}
+
+{% block content %}
+<main class="pt-24 pb-20 bg-watermark">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    
+    <!-- Header Section -->
+    <div class="bg-teal-950 rounded-2xl p-8 sm:p-12 text-white shadow-xl relative overflow-hidden mb-12">
+      <div class="max-w-2xl relative z-10 space-y-4">
+        <span class="text-gold text-xs font-bold uppercase tracking-widest block">Finding Us</span>
+        <h1 class="font-serif text-3xl sm:text-5xl font-bold">Location &amp; How to Reach</h1>
+        <p class="text-white/80 text-sm sm:text-base leading-relaxed">
+          Strategically located along NH 66 in Ambalapuzha, Hotel Coral Heights offers convenient connectivity to major transit hubs, local landmarks, and the historic Sree Krishna Swamy Temple.
+        </p>
+        <div class="pt-2 flex flex-wrap gap-4 text-xs font-semibold">
+          <a href="https://maps.google.com/?q=Hotel+Coral+Heights+Ambalapuzha" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-5 py-2.5 bg-gold text-teal-950 rounded-xl hover:bg-gold-light transition-all shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            Open in Google Maps
+          </a>
+          <a href="tel:{{ contact_info.primary_phone|default:'+919496200777' }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all border border-white/20">
+            Call Front Desk for Directions
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Address & Landmark Card -->
+    <div class="bg-white rounded-2xl p-6 sm:p-8 border border-teal-900/10 shadow-sm mb-12 space-y-4">
+      <h2 class="font-serif text-2xl text-teal-950 font-bold">Property Address</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+        <div class="space-y-2 text-gray-700">
+          <p class="font-semibold text-gray-900 text-base">Hotel Coral Heights</p>
+          <p>{{ contact_info.address_line_1|default:"NH 66, Near Ambalapuzha Railway Station" }}</p>
+          <p>{{ contact_info.address_line_2|default:"Ambalapuzha, Alappuzha District" }}</p>
+          <p>{{ contact_info.address_line_3|default:"Kerala, PIN 688561" }}</p>
+        </div>
+        <div class="bg-cream rounded-xl p-5 border border-teal-900/5 space-y-2">
+          <span class="text-xs font-bold text-teal-900 uppercase tracking-wider block">Landmark &amp; Parking Note</span>
+          <p class="text-xs text-gray-600 leading-relaxed">
+            {{ hotel_info.address_note|default:"Located directly on NH 66, just minutes from the Ambalapuzha Railway Station and Bus Stand." }}
+          </p>
+          <p class="text-xs text-gray-600 leading-relaxed pt-1">
+            <span class="font-bold text-teal-950">Parking:</span> {{ hotel_info.parking_info|default:"Ample free parking available on-site for guest cars and coaches." }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transit Hubs -->
+    <div class="mb-14">
+      <h2 class="font-serif text-2xl text-teal-950 font-bold mb-6">Nearby Transit Points</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for place in transit_places %}
+          <div class="bg-white rounded-2xl p-6 border border-teal-900/10 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
+                {{ place.get_place_type_display }}
+              </span>
+              <span class="text-sm font-bold text-gold">{{ place.distance_km }} km</span>
+            </div>
+            <h3 class="font-serif font-bold text-lg text-teal-950">{{ place.name }}</h3>
+            {% if place.travel_time %}
+              <p class="text-xs text-gray-500 font-medium">Approx. {{ place.travel_time }}</p>
+            {% endif %}
+            {% if place.directions_note %}
+              <p class="text-xs text-gray-600 pt-1 border-t border-gray-100">{{ place.directions_note }}</p>
+            {% endif %}
+          </div>
+        {% empty %}
+          <div class="bg-white rounded-2xl p-6 border border-teal-900/10 col-span-3 text-center text-gray-500 text-sm">
+            Transit information available at front desk.
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Essential Places -->
+    {% if essential_places %}
+    <div class="mb-14">
+      <h2 class="font-serif text-2xl text-teal-950 font-bold mb-6">Nearby Essentials &amp; Medical Centers</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for place in essential_places %}
+          <div class="bg-white rounded-2xl p-5 border border-teal-900/10 shadow-sm space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-gray-500 uppercase">{{ place.get_place_type_display }}</span>
+              <span class="text-xs font-bold text-teal-950">{{ place.distance_km }} km</span>
+            </div>
+            <h4 class="font-semibold text-sm text-gray-900">{{ place.name }}</h4>
+            {% if place.travel_time %}
+              <p class="text-xs text-gray-500">{{ place.travel_time }}</p>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Nearby Attractions -->
+    {% if attractions %}
+    <div class="mb-14">
+      <h2 class="font-serif text-2xl text-teal-950 font-bold mb-6">Tourist Attractions Nearby</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for att in attractions %}
+          <div class="bg-white rounded-2xl overflow-hidden border border-teal-900/10 shadow-sm flex flex-col">
+            {% if att.display_image_url %}
+              <div class="aspect-[16/10] bg-slate-900 overflow-hidden">
+                <img src="{{ att.display_image_url }}" alt="{{ att.name }}" class="w-full h-full object-cover">
+              </div>
+            {% endif %}
+            <div class="p-5 flex-1 space-y-2">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-semibold text-gold bg-gold/10 px-2.5 py-1 rounded-full border border-gold/20">{{ att.distance_label }}</span>
+                {% if att.travel_time %}<span class="text-xs text-gray-500 font-medium">{{ att.travel_time }}</span>{% endif %}
+              </div>
+              <h3 class="font-serif font-bold text-lg text-teal-950">{{ att.name }}</h3>
+              <p class="text-xs text-gray-600 leading-relaxed">{{ att.description }}</p>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</main>
+{% endblock %}
+

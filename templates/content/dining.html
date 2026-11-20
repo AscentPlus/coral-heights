@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ restaurant_info.name|default:"The Pepper Tree Restaurant" }} — Dining at Hotel Coral Heights{% endblock %}
+{% block meta_description %}
+<meta name="description" content="Experience authentic Kerala cuisine, traditional Thattukada delicacies, and multi-cuisine dining at Hotel Coral Heights in Ambalapuzha." />
+{% endblock %}
+{% block body_class %}subpage{% endblock %}
+
+{% block content %}
+<main class="pt-24 pb-20 bg-watermark">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    
+    <!-- Header Section -->
+    <div class="bg-teal-950 rounded-2xl p-8 sm:p-12 text-white shadow-xl relative overflow-hidden mb-12">
+      <div class="max-w-2xl relative z-10 space-y-4">
+        <span class="text-gold text-xs font-bold uppercase tracking-widest block">Culinary Experience</span>
+        <h1 class="font-serif text-3xl sm:text-5xl font-bold">{{ restaurant_info.name|default:"The Pepper Tree Restaurant" }}</h1>
+        <p class="text-white/80 text-sm sm:text-base leading-relaxed">
+          {{ restaurant_info.cuisine_description|default:"Authentic Kerala cuisine, coastal delicacies, traditional evening Thattukada specialties, and North Indian favorites prepared fresh daily." }}
+        </p>
+        <div class="pt-2 flex flex-wrap gap-4 text-xs font-semibold">
+          <a href="tel:{{ contact_info.primary_phone|default:'+919496200777' }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-gold text-teal-950 rounded-xl hover:bg-gold-light transition-all shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+            Reserve a Table
+          </a>
+          <a href="#menu" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all border border-white/20">
+            View Menu
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Operating Hours Grid -->
+    <div class="mb-14">
+      <h2 class="font-serif text-2xl text-teal-950 font-bold mb-6">Service Timings</h2>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 text-center">
+        <div class="bg-white rounded-2xl p-5 border border-teal-900/10 shadow-sm">
+          <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block">Breakfast</span>
+          <span class="font-serif font-bold text-base text-teal-950 mt-1 block">{{ restaurant_info.breakfast_hours|default:"7:30 AM – 10:00 AM" }}</span>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-teal-900/10 shadow-sm">
+          <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block">Lunch</span>
+          <span class="font-serif font-bold text-base text-teal-950 mt-1 block">{{ restaurant_info.lunch_hours|default:"12:30 PM – 3:30 PM" }}</span>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-teal-900/10 shadow-sm">
+          <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block">Dinner</span>
+          <span class="font-serif font-bold text-base text-teal-950 mt-1 block">{{ restaurant_info.dinner_hours|default:"7:30 PM – 10:30 PM" }}</span>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-teal-900/10 shadow-sm">
+          <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block">Thattukada</span>
+          <span class="font-serif font-bold text-base text-teal-950 mt-1 block">{{ restaurant_info.thattukada_hours|default:"6:00 PM – 10:00 PM" }}</span>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-teal-900/10 shadow-sm col-span-2 sm:col-span-1">
+          <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block">Room Service</span>
+          <span class="font-serif font-bold text-base text-teal-950 mt-1 block">{{ restaurant_info.room_service_info|default:"Available during restaurant hours" }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Categorized Menu Section -->
+    <div id="menu" class="space-y-12">
+      <div class="text-center max-w-xl mx-auto">
+        <span class="text-gold text-xs font-bold uppercase tracking-widest block">Published Selections</span>
+        <h2 class="font-serif text-3xl text-teal-950 font-bold mt-1">Restaurant Menu</h2>
+        <div class="w-12 h-0.5 bg-gold mx-auto mt-3"></div>
+      </div>
+
+      {% if categories %}
+        {% for cat in categories %}
+          <div class="bg-white rounded-2xl p-6 sm:p-8 border border-teal-900/10 shadow-sm space-y-6">
+            <h3 class="font-serif font-bold text-2xl text-teal-950 border-b border-gray-100 pb-3 flex items-center justify-between">
+              <span>{{ cat.name }}</span>
+              <span class="text-xs font-sans font-normal text-gray-400">{{ cat.items.count }} item{% if cat.items.count != 1 %}s{% endif %}</span>
+            </h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {% for item in cat.items.all %}
+                <div class="border-b border-gray-100 pb-4 flex justify-between gap-4">
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                      <span class="w-3.5 h-3.5 rounded-sm flex items-center justify-center border {% if item.is_veg %}border-emerald-600 text-emerald-600{% else %}border-rose-600 text-rose-600{% endif %}" title="{% if item.is_veg %}Vegetarian{% else %}Non-Vegetarian{% endif %}">
+                        <span class="w-1.5 h-1.5 rounded-full {% if item.is_veg %}bg-emerald-600{% else %}bg-rose-600{% endif %}"></span>
+                      </span>
+                      <h4 class="font-semibold text-slate-900 text-sm">{{ item.name }}</h4>
+                    </div>
+                    {% if item.description %}
+                      <p class="text-xs text-gray-500 leading-relaxed pl-5">{{ item.description }}</p>
+                    {% endif %}
+                  </div>
+                  <div class="text-right flex-shrink-0">
+                    {% if item.price %}
+                      <span class="font-bold text-teal-950 text-sm">₹{{ item.price|floatformat:"0" }}</span>
+                    {% else %}
+                      <span class="text-xs text-gray-400 italic">Seasonal</span>
+                    {% endif %}
+                  </div>
+                </div>
+              {% empty %}
+                <p class="text-xs text-gray-500 col-span-2">Items for this category are being updated.</p>
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="bg-white rounded-2xl p-8 text-center border border-teal-900/10">
+          <p class="text-gray-500 text-sm">Menu details are being curated. Please contact our restaurant desk directly for today's specials.</p>
+        </div>
+      {% endif %}    
+  </div>
+</main>
+{% endblock %}
+

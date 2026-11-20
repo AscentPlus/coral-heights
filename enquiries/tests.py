@@ -1,9 +1,12 @@
 from datetime import date, timedelta
 from django.test import TestCase
+from django.core.cache import cache
 from enquiries.models import Enquiry
 
 
 class EnquiryFormTestCase(TestCase):
+    def setUp(self):
+        cache.clear()
     def test_valid_enquiry_submission(self):
         """Submitting valid data creates an Enquiry row with status='new'."""
         preferred_date = (date.today() + timedelta(days=10)
@@ -111,4 +114,47 @@ class EnquiryFormTestCase(TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertTrue(response.json()['success'])
                 self.assertTrue(any('Failed to send enquiry notification email' in output for output in cm.output))
+                enquiry = Enquiry.objects.first()
+                self.assertFalse(enquiry.notification_sent)
+                self.assertIn('SMTP connection failed', enquiry.notification_error)
+
+    def test_enquiry_throttling(self):
+        """Enquiry submissions are throttled after 5 requests from the same IP."""
+        from django.core.cache import cache
+        cache.clear()
+        preferred_date = (date.today() + timedelta(days=10)).strftime('%Y-%m-%d')
+        data = {
+            'function_type': 'birthday',
+            'preferred_date': preferred_date,
+            'guest_count': 20,
+            'contact_name': 'Test Throttling',
+            'contact_phone': '9876543210',
+        }
+        for _ in range(5):
+            res = self.client.post('/enquiries/submit/', data)
+            self.assertEqual(res.status_code, 200)
+
+        # 6th request
+        res = self.client.post('/enquiries/submit/', data)
+        self.assertEqual(res.status_code, 429)
+
+    def test_browser_html_submission_invalid_preserves_session(self):
+        """Ordinary HTML submission with errors stores submitted values and errors in session."""
+        data = {
+            'function_type': 'birthday',
+            'contact_name': 'Anita',
+            'contact_phone': '123', # invalid phone
+        }
+        response = self.client.post(
+            '/enquiries/submit/',
+            data,
+            HTTP_ACCEPT='text/html,application/xhtml+xml',
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/#enquiry', response.url)
+        session = self.client.session
+        self.assertIn('enquiry_errors', session)
+        self.assertIn('contact_phone', session['enquiry_errors'])
+        self.assertIn('enquiry_data', session)
+        self.assertEqual(session['enquiry_data']['contact_name'], 'Anita')
 

@@ -1,7 +1,40 @@
 from django.utils import timezone
 from django.db.models import Q
+from decimal import Decimal
+from datetime import timedelta
 from content.models import RoomType, Room
 from .models import Booking
+from .constants import CANCELLATION_POLICY
+
+
+def calculate_booking_pricing(room_type, check_in, check_out, adults=1, children=0):
+    """
+    Shared pricing and policy calculation across availability, booking, checkout, and receipt.
+    Uses verified RoomType base price and standard hotel policies.
+    """
+    nights = (check_out - check_in).days
+    if nights < 1:
+        nights = 1
+    price_per_night = room_type.base_price_per_night
+    base_amount = price_per_night * Decimal(nights)
+    tax_amount = Decimal('0.00')
+    total_amount = base_amount + tax_amount
+    return {
+        'nights': nights,
+        'price_per_night': price_per_night,
+        'base_amount': base_amount,
+        'tax_amount': tax_amount,
+        'tax_note': 'Taxes included in published tariff',
+        'total_amount': total_amount,
+        'meal_plan': 'Room Only (EP)',
+        'inclusions': [
+            'Complimentary Wi-Fi',
+            'Complimentary bottled water',
+            'Free on-site parking',
+        ],
+        'cancellation_policy': CANCELLATION_POLICY,
+    }
+
 
 
 def get_available_rooms(room_type, check_in_date, check_out_date):
@@ -199,85 +232,121 @@ def get_room_statuses_today():
 def get_reports_data(from_date, to_date, guest_name='', phone=''):
     """
     Calculates occupancy and revenue reports data for a given date range [from_date, to_date].
-    Check-in date convention: all metrics and stay lists filter by check_in__range=(from_date, to_date).
+    Calculates occupancy and room-nights by overnight stay date for the selected period.
+    Correctly accounts for stays crossing month-end and eliminates N+1 per-day queries.
     """
-    from decimal import Decimal
-    from datetime import timedelta
-    from django.db.models import Sum
-
     days_count = (to_date - from_date).days + 1
     if days_count < 1:
         days_count = 1
 
-    # Bookings with check_in falling in the date range
-    range_bookings = Booking.objects.filter(
+    valid_statuses = [Booking.STATUS_CONFIRMED, Booking.STATUS_COMPLETED]
+
+    # Stays that overlap the selected period [from_date, to_date]
+    # An overnight stay on date d requires check_in <= d and check_out > d.
+    # Therefore, a booking has at least one overnight stay in [from_date, to_date] if:
+    # check_in <= to_date and check_out > from_date
+    overlapping_valid_bookings = list(Booking.objects.filter(
+        status__in=valid_statuses,
+        check_in__lte=to_date,
+        check_out__gt=from_date
+    ).select_related('guest', 'room', 'room__room_type'))
+
+    # All bookings that arrived in the range (for cancellation tracking and check-in logs)
+    arrival_bookings = Booking.objects.filter(
         check_in__range=(from_date, to_date)
     ).select_related('guest', 'room', 'room__room_type')
 
-    # Confirmed & Completed bookings (valid revenue stays)
-    valid_statuses = [Booking.STATUS_CONFIRMED, Booking.STATUS_COMPLETED]
-    confirmed_qs = range_bookings.filter(status__in=valid_statuses)
-    cancelled_qs = range_bookings.filter(status=Booking.STATUS_CANCELLED)
+    cancelled_count = arrival_bookings.filter(status=Booking.STATUS_CANCELLED).count()
+    confirmed_count = len(overlapping_valid_bookings)
 
-    confirmed_count = confirmed_qs.count()
-    cancelled_count = cancelled_qs.count()
+    total_revenue = Decimal('0.00')
+    room_nights_sold = 0
 
-    total_revenue = confirmed_qs.aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0.00')
+    # Build daily occupancy sets: index i corresponds to (from_date + i days)
+    daily_occupied_rooms = [set() for _ in range(days_count)]
+    rt_stats = {}  # rt_id -> {'room_type': rt, 'booking_ids': set(), 'nights': 0, 'revenue': Decimal('0.00')}
 
-    # Total room-nights sold in range
-    room_nights_sold = sum((b.check_out - b.check_in).days for b in confirmed_qs)
+    for b in overlapping_valid_bookings:
+        # Determine overlap with [from_date, to_date]
+        stay_start = max(b.check_in, from_date)
+        stay_end = min(b.check_out, to_date + timedelta(days=1))
+        nights_in_period = (stay_end - stay_start).days
 
-    # Average Nightly Rate (ADR)
+        if nights_in_period > 0:
+            room_nights_sold += nights_in_period
+
+            # Prorated or full revenue for nights falling strictly within this reporting period
+            total_stay_nights = (b.check_out - b.check_in).days
+            if total_stay_nights > 0 and b.total_amount:
+                nightly_rate = b.total_amount / Decimal(total_stay_nights)
+                period_revenue = nightly_rate * Decimal(nights_in_period)
+            elif b.room and b.room.room_type:
+                period_revenue = b.room.room_type.base_price_per_night * Decimal(nights_in_period)
+            else:
+                period_revenue = Decimal('0.00')
+            total_revenue += period_revenue
+
+            rt = b.room.room_type
+            if rt.id not in rt_stats:
+                rt_stats[rt.id] = {
+                    'room_type': rt,
+                    'booking_ids': set(),
+                    'nights': 0,
+                    'revenue': Decimal('0.00'),
+                }
+            rt_stats[rt.id]['booking_ids'].add(b.id)
+            rt_stats[rt.id]['nights'] += nights_in_period
+            rt_stats[rt.id]['revenue'] += period_revenue
+
+            # Record room occupied for each night within the period
+            for i in range(days_count):
+                day_date = from_date + timedelta(days=i)
+                if b.check_in <= day_date < b.check_out:
+                    daily_occupied_rooms[i].add(b.room_id)
+
     if room_nights_sold > 0:
         average_nightly_rate = total_revenue / Decimal(room_nights_sold)
     else:
         average_nightly_rate = Decimal('0.00')
 
-    # Occupancy % calculation across each day in [from_date, to_date]
     total_rooms = Room.objects.count()
-    daily_occupancies = []
-
     if total_rooms > 0:
-        for i in range(days_count):
-            curr_date = from_date + timedelta(days=i)
-            occupied_count = Booking.objects.filter(
-                status__in=valid_statuses,
-                check_in__lte=curr_date,
-                check_out__gt=curr_date
-            ).values('room_id').distinct().count()
-
-            daily_occ = (occupied_count / total_rooms) * 100.0
-            daily_occupancies.append(daily_occ)
-
-        occupancy_pct = sum(daily_occupancies) / float(days_count)
+        daily_occupancy_pcts = [
+            (len(occupied) / float(total_rooms)) * 100.0
+            for occupied in daily_occupied_rooms
+        ]
+        occupancy_pct = sum(daily_occupancy_pcts) / float(days_count)
     else:
         occupancy_pct = 0.0
 
     # Room-Type breakdown
     room_types = RoomType.objects.all()
     room_type_breakdown = []
-
     for rt in room_types:
-        rt_confirmed = confirmed_qs.filter(room__room_type=rt)
-        rt_count = rt_confirmed.count()
-        rt_rev = rt_confirmed.aggregate(Sum('total_amount'))['total_amount__sum'] or Decimal('0.00')
-        rt_nights = sum((b.check_out - b.check_in).days for b in rt_confirmed)
+        st = rt_stats.get(rt.id, {
+            'room_type': rt,
+            'booking_ids': set(),
+            'nights': 0,
+            'revenue': Decimal('0.00')
+        })
+        rt_rev = st['revenue']
         rt_pct = float(rt_rev / total_revenue) * 100.0 if total_revenue > 0 else 0.0
-
         room_type_breakdown.append({
             'room_type': rt,
-            'count': rt_count,
-            'nights': rt_nights,
+            'count': len(st['booking_ids']),
+            'nights': st['nights'],
             'revenue': rt_rev,
             'revenue_pct': rt_pct,
         })
 
     # Guest stay list (filterable by guest_name and phone)
-    guest_list_qs = range_bookings
+    guest_list_items = overlapping_valid_bookings
     if guest_name:
-        guest_list_qs = guest_list_qs.filter(guest__name__icontains=guest_name)
+        guest_list_items = [b for b in guest_list_items if guest_name.lower() in (b.guest.name or '').lower()]
     if phone:
-        guest_list_qs = guest_list_qs.filter(guest__phone__icontains=phone)
+        guest_list_items = [b for b in guest_list_items if phone.lower() in (b.guest.phone or '').lower()]
+
+    guest_list_items.sort(key=lambda b: b.check_in, reverse=True)
 
     return {
         'confirmed_count': confirmed_count,
@@ -288,5 +357,5 @@ def get_reports_data(from_date, to_date, guest_name='', phone=''):
         'occupancy_pct': round(occupancy_pct, 1),
         'days_count': days_count,
         'room_type_breakdown': room_type_breakdown,
-        'guest_list_qs': guest_list_qs,
+        'guest_list_qs': guest_list_items,
     }

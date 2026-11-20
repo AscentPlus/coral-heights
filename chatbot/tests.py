@@ -13,7 +13,8 @@ from hotel_info.models import (
     HotelInfo, RestaurantInfo, MenuCategory, MenuItem,
     NearbyPlace, ChatFAQ, UnansweredQuestion
 )
-from chatbot.engine import answer, normalize_text, TOPIC_DISPLAY_NAMES
+from bookings.constants import CANCELLATION_POLICY
+from chatbot.engine import answer
 
 
 class ChatbotEngineTableDrivenTests(TestCase):
@@ -309,7 +310,6 @@ class ChatbotEngineTableDrivenTests(TestCase):
 
     def test_tie_breaker_clarification_buttons(self):
         """When two topics tie, engine returns a clarifying question with action buttons."""
-        from chatbot.engine import TOPIC_ROOMS, TOPIC_RESTAURANT
         # Construct an artificial query that touches both topics equally
         res = answer("room restaurant")
         self.assertTrue(res["matched"])
@@ -498,4 +498,240 @@ class UnansweredQuestionDedupeAndPurgeTests(TestCase):
         self.assertFalse(UnansweredQuestion.objects.filter(id=q_old_handled.id).exists())
         self.assertTrue(UnansweredQuestion.objects.filter(id=q_old_unhandled.id).exists())
         self.assertTrue(UnansweredQuestion.objects.filter(id=q_recent_handled.id).exists())
+
+
+class ChatbotAuditRegressionTests(TestCase):
+    """
+    Regression test suite specifically verifying the 11 audit prompts, stable intent IDs,
+    JSON object body validation, allergen neutrality, and PII redaction.
+    """
+    @classmethod
+    def setUpTestData(cls):
+        cls.contact = ContactInformation.objects.create(
+            primary_phone='+91 9496200777',
+            whatsapp_number='+919496200777',
+            email='info@coralheights.com',
+            address_line_1='Hotel Coral Heights',
+            address_line_2='Temple Road, Ambalapuzha',
+            address_line_3='Alappuzha, Kerala — 688 561'
+        )
+
+        cls.hotel_info = HotelInfo.objects.create(
+            check_in_time="12:00 PM",
+            check_out_time="11:00 AM",
+            address_note="Located 350 meters east of NH 66 Ambalapuzha Junction.",
+            parking_info="On-site guest parking available.",
+            wifi_info="High-speed optical Wi-Fi available.",
+            payment_methods="Cash, UPI, Credit/Debit cards accepted.",
+            languages_spoken="Malayalam, English, Hindi",
+            pet_policy="Pets are not allowed on the property.",
+            rate_note="Rates vary by date and meal plan. Use the Check Availability option for the exact price."
+        )
+
+        cls.restaurant_info = RestaurantInfo.objects.create(
+            name="Coral Heights Restaurant",
+            cuisine_description="Traditional Kerala Cuisine and North Indian Specialties",
+            breakfast_hours="8:00 AM to 11:00 AM",
+            lunch_hours="12:30 PM to 3:30 PM",
+            dinner_hours="7:30 PM to 10:30 PM",
+            thattukada_hours="5:00 PM to 9:00 PM",
+            room_service_info="Room service available from 7:00 AM to 11:00 PM",
+            extra_notes="Fresh seafood prepared to order."
+        )
+
+        cls.cat_kerala = MenuCategory.objects.create(name="Kerala Specials", display_order=1)
+        cls.item_karimeen = MenuItem.objects.create(
+            category=cls.cat_kerala,
+            name="Karimeen Pollichathu",
+            description="Pearl spot fish coated in spicy masala wrapped in banana leaf and roasted.",
+            price=None,  # Price is unconfigured initially
+            is_veg=False,
+            is_available=True,
+            display_order=1
+        )
+
+        cls.fac_wheelchair = Facility.objects.create(
+            name="Wheelchair Accessibility",
+            display_order=1
+        )
+
+        cls.room_deluxe = RoomType.objects.create(
+            name="Deluxe Suite",
+            slug="deluxe-suite",
+            base_price_per_night=Decimal('4500.00'),
+            max_occupancy=3,
+            bed_type="King Bed",
+            short_description="Spacious heritage-themed suite."
+        )
+
+        cls.faq_hot_water = ChatFAQ.objects.create(
+            question="Is hot water available?",
+            keywords="hot water, geyser",
+            answer="Yes, all rooms are equipped with 24/7 hot water.",
+            is_active=True,
+            display_order=1
+        )
+
+    def setUp(self):
+        self.client = Client()
+        cache.clear()
+
+    def test_json_request_body_validation(self):
+        """API must reject non-object JSON shapes, empty messages and invalid types with HTTP 400."""
+        url = reverse('chatbot:ask')
+
+        # Array instead of object
+        res = self.client.post(url, data=json.dumps(["hello"]), content_type="application/json")
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("JSON object", res.json()["error"])
+
+        # String instead of object
+        res = self.client.post(url, data=json.dumps("hello"), content_type="application/json")
+        self.assertEqual(res.status_code, 400)
+
+        # Empty message
+        res = self.client.post(url, data=json.dumps({"message": "   "}), content_type="application/json")
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("empty", res.json()["error"].lower())
+
+        # Exceeds character limit
+        res = self.client.post(url, data=json.dumps({"message": "x" * 305}), content_type="application/json")
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("limit", res.json()["error"].lower())
+
+    def test_shipped_quick_replies_and_stable_intent_ids(self):
+        """Quick reply chips must have stable intent IDs and direct button actions must work."""
+        url_topics = reverse('chatbot:topics')
+        res = self.client.get(url_topics)
+        self.assertEqual(res.status_code, 200)
+        topics = res.json()["topics"]
+        self.assertTrue(len(topics) >= 5)
+
+        intent_ids = [t.get("intent_id") for t in topics]
+        self.assertIn("hotel_info", intent_ids)
+        self.assertIn("rooms_rates", intent_ids)
+        self.assertIn("restaurant", intent_ids)
+
+        url_ask = reverse('chatbot:ask')
+        # Explicit intent action for Check-in & Policies
+        res_intent = self.client.post(
+            url_ask,
+            data=json.dumps({"intent_id": "hotel_info"}),
+            content_type="application/json"
+        )
+        self.assertEqual(res_intent.status_code, 200)
+        data = res_intent.json()
+        self.assertTrue(data["matched"])
+        self.assertIn(self.hotel_info.check_in_time, data["answer"])
+        self.assertIn(self.hotel_info.check_out_time, data["answer"])
+
+    def test_prompt_1_breakfast_hours(self):
+        """Prompt: 'What time do you serve breakfast?' -> leads with configured breakfast time."""
+        res = answer("What time do you serve breakfast?")
+        self.assertTrue(res["matched"])
+        self.assertIn(self.restaurant_info.breakfast_hours, res["answer"])
+        self.assertTrue(res["answer"].lower().startswith("breakfast:"))
+
+    def test_prompt_2_cancel_booking(self):
+        """Prompt: 'Can I cancel my booking?' -> shows cancellation policy & contact."""
+        res = answer("Can I cancel my booking?")
+        self.assertTrue(res["matched"])
+        self.assertIn(CANCELLATION_POLICY[:40], res["answer"])
+        self.assertIn(self.contact.primary_phone, res["answer"])
+
+    def test_prompt_3_tokyo_weather_no_fuzzy_match(self):
+        """Prompt: 'What is the weather in Tokyo?' -> must NOT fuzzy match hot water FAQ."""
+        res = answer("What is the weather in Tokyo?")
+        self.assertFalse(res["matched"])
+        self.assertNotIn("hot water", res["answer"].lower())
+        self.assertIn(self.contact.primary_phone, res["answer"])
+
+    def test_prompt_4_dish_price_karimeen(self):
+        """Prompt: 'How much is Karimeen Pollichathu?' -> states staff confirmation when price unconfigured, quotes price when set."""
+        res = answer("How much is Karimeen Pollichathu?")
+        self.assertTrue(res["matched"])
+        self.assertIn("Karimeen Pollichathu", res["answer"])
+        self.assertIn("staff can confirm", res["answer"].lower())
+
+        # Now configure a price and verify it quotes the exact tariff
+        self.item_karimeen.price = Decimal("480.00")
+        self.item_karimeen.save()
+
+        res_priced = answer("How much is Karimeen Pollichathu?")
+        self.assertTrue(res_priced["matched"])
+        self.assertIn("480.00", res_priced["answer"])
+
+    def test_prompt_5_dish_allergen_neutrality(self):
+        """Prompt: 'Is Karimeen Pollichathu safe for a nut allergy?' -> neutral disclaimer, no 'Yes', no safety claims."""
+        res = answer("Is Karimeen Pollichathu safe for a nut allergy?")
+        self.assertTrue(res["matched"])
+        self.assertIn("Our restaurant team can confirm ingredients and possible cross-contact", res["answer"])
+        self.assertFalse(res["answer"].strip().startswith("Yes"))
+        self.assertNotIn("safe", res["answer"].lower().split())
+
+    def test_prompt_6_wheelchair_accessible_rooms(self):
+        """Prompt: 'Do you have wheelchair-accessible rooms?' -> gives exact configured info or staff contact."""
+        res = answer("Do you have wheelchair-accessible rooms?")
+        self.assertTrue(res["matched"])
+        self.assertIn("Wheelchair Accessibility", res["answer"])
+        self.assertIn(self.contact.primary_phone, res["answer"])
+
+    def test_prompt_7_elevator_facility(self):
+        """Prompt: 'Is there an elevator?' -> honest answer without making unsupported claims."""
+        res = answer("Is there an elevator?")
+        self.assertTrue(res["matched"])
+        self.assertIn("Elevator", res["answer"])
+        self.assertIn("not listed in our standard facility records", res["answer"])
+        self.assertIn(self.contact.primary_phone, res["answer"])
+
+    def test_prompt_8_hotel_location_address(self):
+        """Prompt: 'Where is Hotel Coral Heights in Ambalapuzha?' -> gives address and landmark."""
+        res = answer("Where is Hotel Coral Heights in Ambalapuzha?")
+        self.assertTrue(res["matched"])
+        self.assertIn(self.contact.address_line_1, res["answer"])
+        self.assertIn(self.hotel_info.address_note, res["answer"])
+
+    def test_prompt_9_malayalam_checkin_timing(self):
+        """Prompt: 'എപ്പോഴാണ് ചെക്ക് ഇൻ?' -> answers check-in timing in Malayalam."""
+        res = answer("എപ്പോഴാണ് ചെക്ക് ഇൻ?")
+        self.assertTrue(res["matched"])
+        self.assertIn(self.hotel_info.check_in_time, res["answer"])
+        self.assertIn(self.hotel_info.check_out_time, res["answer"])
+
+    def test_prompt_10_malayalam_room_rates(self):
+        """Prompt: 'മുറിയുടെ നിരക്ക് എത്രയാണ്?' -> answers room rates in Malayalam."""
+        res = answer("മുറിയുടെ നിരക്ക് എത്രയാണ്?")
+        self.assertTrue(res["matched"])
+        self.assertIn("4500.00", res["answer"])
+        self.assertIn(self.hotel_info.rate_note, res["answer"])
+
+    def test_prompt_11_dual_intent_booking_and_checkin(self):
+        """Prompt: 'Can I book a room for tomorrow and what are your check-in times?' -> answers both."""
+        res = answer("Can I book a room for tomorrow and what are your check-in times?")
+        self.assertTrue(res["matched"])
+        self.assertIn(self.hotel_info.check_in_time, res["answer"])
+        self.assertIn("Check Availability box", res["answer"])
+        # Action chips include scroll to availability
+        action_vals = [a.get("value") for a in res["actions"]]
+        self.assertIn("#availability", action_vals)
+
+    def test_pii_redaction_in_unanswered_questions(self):
+        """Sensitive guest PII (phone, email, card) must be redacted before saving to UnansweredQuestion."""
+        UnansweredQuestion.objects.all().delete()
+        text_with_pii = (
+            "Can a spaceship land on your roof? My info is 9876543210 and testguest@example.com "
+            "with card 4111222233334444."
+        )
+        res = answer(text_with_pii, record_unanswered=True)
+        self.assertFalse(res["matched"])
+
+        logged = UnansweredQuestion.objects.first()
+        self.assertIsNotNone(logged)
+        self.assertNotIn("9876543210", logged.text)
+        self.assertNotIn("testguest@example.com", logged.text)
+        self.assertNotIn("4111222233334444", logged.text)
+        self.assertIn("[REDACTED_PHONE]", logged.text)
+        self.assertIn("[REDACTED_EMAIL]", logged.text)
+        self.assertIn("[REDACTED_CARD]", logged.text)
+
 

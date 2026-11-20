@@ -78,6 +78,7 @@
             <th class="py-3.5 px-4">Preferred Date</th>
             <th class="py-3.5 px-4">Guests</th>
             <th class="py-3.5 px-4">Status</th>
+            <th class="py-3.5 px-4 text-center">Notification</th>
             <th class="py-3.5 px-4">Submitted</th>
             <th class="py-3.5 px-4 text-center">Action</th>
           </tr>
@@ -109,6 +110,19 @@
                   <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-medium">Closed</span>
                 {% endif %}
               </td>
+              <td class="py-3.5 px-4 text-center">
+                {% if enquiry.notification_sent %}
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800" title="Notification sent">
+                    <svg class="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                    Sent
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800" title="{% if enquiry.notification_error %}{{ enquiry.notification_error }}{% else %}Not delivered{% endif %}">
+                    <svg class="w-3 h-3 text-rose-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    Failed
+                  </span>
+                {% endif %}
+              </td>
               <td class="py-3.5 px-4 text-slate-500 text-xs">
                 {{ enquiry.created_at|date:"d-M H:i" }}
               </td>
@@ -124,7 +138,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="8" class="py-8 text-center text-slate-500 text-sm">
+              <td colspan="9" class="py-8 text-center text-slate-500 text-sm">
                 No enquiries found matching the selected criteria.
               </td>
             </tr>

@@ -24,15 +24,15 @@ document.addEventListener('alpine:init', () => {
     return str;
   }
 
-  // Hero video: autoplay, mute/unmute, pause on scroll-away / tab-hide
+  // Hero video: ambient autoplay (muted), respect reduced-motion & data-saver, pause on scroll-away / tab-hidden
   Alpine.data('heroVideo', () => ({
-    muted: true,
-    showButton: true,
     _observer: null,
 
     init() {
       const video = this.$refs.video;
-      if (!video) { this.showButton = false; return; }
+      if (!video) return;
+
+      video.muted = true;
 
       // Respect reduced-motion and data-saver
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -40,17 +40,13 @@ document.addEventListener('alpine:init', () => {
 
       if (prefersReducedMotion || saveData) {
         video.pause();
-        this.showButton = false;
         return;
       }
 
-      // Attempt autoplay (must be muted)
+      // Ambient muted playback
       const playPromise = video.play();
       if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch(() => {
-          // Autoplay blocked (e.g. iOS Low Power Mode): poster shows, hide button
-          this.showButton = false;
-        });
+        playPromise.catch(() => {});
       }
 
       // IntersectionObserver: pause when hero is <25% visible
@@ -73,32 +69,9 @@ document.addEventListener('alpine:init', () => {
         if (document.hidden) {
           this.$refs.video.pause();
         } else {
-          this.$refs.video.play().catch(() => {});
+          video.play().catch(() => {});
         }
       });
-    },
-
-    get muteLabel() {
-      return this.muted ? 'Unmute video' : 'Mute video';
-    },
-
-    get isMuted() {
-      return this.muted;
-    },
-
-    get isUnmuted() {
-      return !this.muted;
-    },
-
-    toggleMute() {
-      const video = this.$refs.video;
-      if (!video) return;
-      this.muted = !this.muted;
-      video.muted = this.muted;
-      // If unmuting while paused, start playback
-      if (!this.muted && video.paused) {
-        video.play().catch(() => {});
-      }
     },
 
     destroy() {
@@ -194,6 +167,7 @@ document.addEventListener('alpine:init', () => {
     adults: 2,
     children: 0,
     selectedMaxOccupancy: 6,
+    guestsOpen: false,
     showResults: false,
     resultPrice: 0,
     resultAvail: 0,
@@ -427,6 +401,12 @@ document.addEventListener('alpine:init', () => {
     },
     decrementChildren() {
       if (this.children > 0) this.children--;
+    },
+    toggleGuests() {
+      this.guestsOpen = !this.guestsOpen;
+    },
+    closeGuests() {
+      this.guestsOpen = false;
     }
   }));
 
@@ -688,6 +668,13 @@ document.addEventListener('alpine:init', () => {
         this.errorMessage = 'Phone number must be exactly 10 digits.';
         return;
       }
+      if (this.email && this.email.trim()) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(this.email.trim())) {
+          this.errorMessage = 'Please enter a valid email address, or leave it blank.';
+          return;
+        }
+      }
 
       this.loading = true;
       const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
@@ -750,7 +737,7 @@ document.addEventListener('alpine:init', () => {
             phone: cleanPhone,
             code: cleanCode,
             guest_name: this.guestName.trim(),
-            guest_email: this.email.trim() || null,
+            guest_email: (this.email && this.email.trim()) ? this.email.trim() : '',
             room_type: this.roomTypeSlug,
             check_in: this.checkin,
             check_out: this.checkout,
@@ -1001,7 +988,7 @@ document.addEventListener('alpine:init', () => {
     }
   }));
 
-  // Hotel Assistant Chatbot component (CSP-safe)
+  // Hotel Assistant Chatbot component (Taj-inspired clean luxury design)
   Alpine.data('chatbot', () => ({
     open: false,
     inputText: '',
@@ -1011,24 +998,13 @@ document.addEventListener('alpine:init', () => {
     _inputEl: null,
     _messagesContainer: null,
 
-    init() {
+    async init() {
       this._launcherBtn = document.getElementById('chatLauncherBtn');
       this._inputEl = document.getElementById('chatTextInput');
       this._messagesContainer = document.getElementById('chatMessagesList');
 
-      this.fetchTopics();
-
-      // Initial greeting message
-      this.addAssistantMessage(
-        "Namaskaram! I am the Hotel Assistant for Hotel Coral Heights. How may I help you today? You can ask me about our room rates, restaurant timings, menu, hotel facilities, or how to reach us.",
-        [
-          { label: "Rooms & Rates", type: "topic", value: "rooms and rates" },
-          { label: "Restaurant & Menu", type: "topic", value: "restaurant" },
-          { label: "Facilities", type: "topic", value: "facilities" },
-          { label: "How to Reach", type: "topic", value: "how to reach" },
-          { label: "Check Availability", type: "scroll", value: "#availability" }
-        ]
-      );
+      await this.fetchTopics();
+      this.renderInitialGreeting();
     },
 
     get isOpen() {
@@ -1048,9 +1024,6 @@ document.addEventListener('alpine:init', () => {
     },
     get isSendDisabled() {
       return this.inputText.trim().length === 0 || this.loading;
-    },
-    get panelClasses() {
-      return this.open ? 'chat-panel-open' : 'chat-panel-closed hidden';
     },
 
     toggleChat() {
@@ -1084,40 +1057,82 @@ document.addEventListener('alpine:init', () => {
       this.inputText = (e && e.target ? e.target.value : '').slice(0, 300);
     },
 
+    formatTime() {
+      const d = new Date();
+      let hours = d.getHours();
+      const minutes = d.getMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      const strMinutes = minutes < 10 ? '0' + minutes : minutes;
+      return `${hours}:${strMinutes} ${ampm}`;
+    },
+
     async fetchTopics() {
       try {
         const res = await fetch('/chat/topics/');
         if (res.ok) {
           const data = await res.json();
           this.topics = data.topics || [];
-          this.renderQuickReplyChips();
         }
       } catch (err) {
         this.topics = [
-          { label: "Rooms & Rates", topic: "rooms" },
-          { label: "Restaurant", topic: "restaurant" },
-          { label: "Facilities", topic: "facilities" },
-          { label: "Directions", topic: "how to reach" }
+          { label: "Rooms & Rates", intent_id: "rooms_rates" },
+          { label: "Check Availability", type: "scroll", value: "#availability" },
+          { label: "Restaurant & Dining", intent_id: "restaurant" },
+          { label: "Check-in & Policies", intent_id: "hotel_info" },
+          { label: "Facilities & Amenities", intent_id: "facilities" },
+          { label: "Location & Directions", intent_id: "directions" }
         ];
-        this.renderQuickReplyChips();
       }
     },
 
-    renderQuickReplyChips() {
-      const chipsContainer = document.getElementById('chatQuickChips');
-      if (!chipsContainer || !this.topics || this.topics.length === 0) return;
-      chipsContainer.textContent = '';
+    renderInitialGreeting() {
+      if (!this._messagesContainer) return;
+      this._messagesContainer.textContent = '';
 
-      this.topics.forEach(t => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'chat-chip px-3 py-1 bg-white hover:bg-gold/20 text-teal-950 border border-slate-200 hover:border-gold rounded-full text-xs font-semibold whitespace-nowrap transition-all shadow-2xs cursor-pointer flex-shrink-0';
-        btn.textContent = t.label;
-        btn.setAttribute('aria-label', t.label);
-        btn.addEventListener('click', () => {
-          this.sendDirectMessage(t.topic || t.label);
-        });
-        chipsContainer.appendChild(btn);
+      // Centered Today badge
+      const dateDiv = document.createElement('div');
+      dateDiv.className = 'flex justify-center my-1.5';
+      const dateBadge = document.createElement('span');
+      dateBadge.className = 'text-[11px] font-medium text-stone-500 bg-stone-100 px-3 py-0.5 rounded-full shadow-2xs';
+      dateBadge.textContent = 'Today';
+      dateDiv.appendChild(dateBadge);
+      this._messagesContainer.appendChild(dateDiv);
+
+      // Assistant Message 1: Welcome
+      this.addAssistantMessage("Welcome to Hotel Coral Heights! I am Cora, your 24/7 Hotel Assistant.");
+
+      // Interactive Topic Action Pills
+      const defaultActions = [
+        { label: "Rooms & Rates", type: "topic", intent_id: "rooms_rates" },
+        { label: "Check Availability", type: "scroll", value: "#availability" },
+        { label: "Restaurant & Dining", type: "topic", intent_id: "restaurant" },
+        { label: "Check-in & Policies", type: "topic", intent_id: "hotel_info" },
+        { label: "Facilities & Amenities", type: "topic", intent_id: "facilities" },
+        { label: "Location & Directions", type: "topic", intent_id: "directions" }
+      ];
+
+      const actions = (this.topics && this.topics.length > 0) ? this.topics.map(t => ({
+        label: t.label,
+        type: t.type || (t.intent_id ? 'topic' : 'topic'),
+        intent_id: t.intent_id,
+        value: t.value || t.intent_id || t.topic
+      })) : defaultActions;
+
+      this.addAssistantMessage("How may I help you today? Please choose a topic below or type your question:", actions);
+    },
+
+    resetChat() {
+      this.inputText = '';
+      if (this._inputEl) {
+        this._inputEl.value = '';
+      }
+      this.renderInitialGreeting();
+      this.$nextTick(() => {
+        if (this._inputEl && window.innerWidth >= 640) {
+          this._inputEl.focus();
+        }
       });
     },
 
@@ -1131,13 +1146,21 @@ document.addEventListener('alpine:init', () => {
       if (!this._messagesContainer) return;
 
       const row = document.createElement('div');
-      row.className = 'flex justify-end mb-3';
+      row.className = 'flex flex-col items-end mb-2.5 w-full';
 
       const bubble = document.createElement('div');
-      bubble.className = 'max-w-[85%] bg-teal-900 text-white text-xs sm:text-sm rounded-2xl rounded-tr-xs px-4 py-2.5 shadow-sm leading-relaxed';
+      bubble.className = 'bg-teal-900 text-white text-xs sm:text-[13px] rounded-2xl rounded-tr-xs px-3.5 py-2 shadow-2xs leading-relaxed break-words max-w-[85%] w-fit self-end';
+      bubble.style.width = 'fit-content';
+      bubble.style.maxWidth = '85%';
+      bubble.style.marginLeft = 'auto';
       bubble.textContent = text;
 
+      const meta = document.createElement('div');
+      meta.className = 'text-[10px] text-slate-400 mt-0.5 pr-1 text-right';
+      meta.textContent = this.formatTime();
+
       row.appendChild(bubble);
+      row.appendChild(meta);
       this._messagesContainer.appendChild(row);
       this.scrollToBottom();
     },
@@ -1146,22 +1169,19 @@ document.addEventListener('alpine:init', () => {
       if (!this._messagesContainer) return;
 
       const row = document.createElement('div');
-      row.className = 'flex flex-col items-start mb-3 max-w-[92%]';
-
-      const label = document.createElement('span');
-      label.className = 'text-[10px] font-bold text-teal-900 uppercase tracking-wider mb-1 pl-1 flex items-center gap-1';
-      label.textContent = 'Hotel Assistant';
+      row.className = 'flex flex-col items-start mb-2.5 w-full';
 
       const bubble = document.createElement('div');
-      bubble.className = 'w-full bg-teal-50/80 border border-teal-100 text-teal-950 text-xs sm:text-sm rounded-2xl rounded-tl-xs px-4 py-2.5 shadow-2xs whitespace-pre-line leading-relaxed';
+      bubble.className = 'bg-slate-100 text-slate-800 text-xs sm:text-[13px] rounded-2xl rounded-tl-xs px-3.5 py-2 shadow-2xs whitespace-pre-line leading-relaxed break-words max-w-[90%] w-fit self-start';
+      bubble.style.width = 'fit-content';
+      bubble.style.maxWidth = '90%';
       bubble.textContent = text;
 
-      row.appendChild(label);
       row.appendChild(bubble);
 
       if (actions && Array.isArray(actions) && actions.length > 0) {
         const actionsBox = document.createElement('div');
-        actionsBox.className = 'flex flex-wrap gap-1.5 mt-2 pl-1';
+        actionsBox.className = 'flex flex-wrap gap-1.5 mt-2';
 
         actions.forEach(act => {
           if (!act || !act.type || !act.label) return;
@@ -1169,7 +1189,7 @@ document.addEventListener('alpine:init', () => {
           if (act.type === 'scroll') {
             const btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'px-3 py-1 bg-gold hover:bg-gold-light text-teal-950 font-bold rounded-lg text-xs transition-all shadow-2xs cursor-pointer border-0';
+            btn.className = 'px-3 py-1 bg-gold hover:bg-gold-light text-teal-950 font-semibold rounded-full text-xs transition-all shadow-2xs cursor-pointer border-0';
             btn.textContent = act.label;
             btn.setAttribute('aria-label', act.label);
             btn.addEventListener('click', () => {
@@ -1186,7 +1206,7 @@ document.addEventListener('alpine:init', () => {
           } else if (act.type === 'tel') {
             const a = document.createElement('a');
             a.href = `tel:${act.value}`;
-            a.className = 'px-3 py-1 bg-teal-900 hover:bg-teal-950 text-gold font-bold rounded-lg text-xs transition-all shadow-2xs inline-flex items-center gap-1';
+            a.className = 'px-3 py-1 bg-teal-950 hover:bg-teal-900 text-gold font-medium rounded-full text-xs transition-all shadow-2xs inline-flex items-center gap-1';
             a.textContent = act.label;
             a.setAttribute('aria-label', act.label);
             actionsBox.appendChild(a);
@@ -1196,7 +1216,7 @@ document.addEventListener('alpine:init', () => {
             a.href = act.value;
             a.target = '_blank';
             a.rel = 'noopener noreferrer';
-            a.className = 'px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-all shadow-2xs inline-flex items-center gap-1';
+            a.className = 'px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-full text-xs transition-all shadow-2xs inline-flex items-center gap-1';
             a.textContent = act.label;
             a.setAttribute('aria-label', act.label);
             actionsBox.appendChild(a);
@@ -1204,11 +1224,16 @@ document.addEventListener('alpine:init', () => {
           } else if (act.type === 'topic') {
             const btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'px-3 py-1 bg-white hover:bg-teal-100 text-teal-900 border border-teal-200 rounded-lg text-xs font-semibold transition-all shadow-2xs cursor-pointer';
+            btn.className = 'px-3 py-1 bg-white hover:bg-teal-50 text-teal-950 rounded-full text-xs font-medium border border-teal-900/15 hover:border-teal-700 transition-all shadow-2xs cursor-pointer';
             btn.textContent = act.label;
             btn.setAttribute('aria-label', act.label);
             btn.addEventListener('click', () => {
-              this.sendDirectMessage(act.value || act.label);
+              const intentId = act.intent_id || act.value;
+              if (intentId) {
+                this.sendIntent(intentId, act.label);
+              } else {
+                this.sendDirectMessage(act.label);
+              }
             });
             actionsBox.appendChild(btn);
           }
@@ -1216,6 +1241,11 @@ document.addEventListener('alpine:init', () => {
 
         row.appendChild(actionsBox);
       }
+
+      const meta = document.createElement('div');
+      meta.className = 'text-[10px] text-slate-400 mt-0.5 pl-1';
+      meta.textContent = this.formatTime();
+      row.appendChild(meta);
 
       this._messagesContainer.appendChild(row);
       this.scrollToBottom();
@@ -1228,7 +1258,7 @@ document.addEventListener('alpine:init', () => {
 
       indicator = document.createElement('div');
       indicator.id = 'chatTypingIndicator';
-      indicator.className = 'flex items-center gap-1.5 p-2 bg-teal-50 border border-teal-100 rounded-xl w-16 mb-2';
+      indicator.className = 'flex items-center gap-1.5 p-2 bg-slate-100 rounded-full w-14 mb-2 shadow-2xs';
       indicator.setAttribute('aria-label', 'Hotel assistant is typing');
 
       for (let i = 0; i < 3; i++) {
@@ -1247,6 +1277,48 @@ document.addEventListener('alpine:init', () => {
       if (indicator && indicator.parentElement) {
         indicator.parentElement.removeChild(indicator);
       }
+    },
+
+    sendIntent(intentId, label) {
+      if (!intentId || this.loading) return;
+      this.addUserMessage(label || intentId);
+      this.loading = true;
+      this.showTypingIndicator();
+
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+      fetch('/chat/ask/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ intent_id: intentId })
+      })
+      .then(res => res.json().then(data => ({ ok: res.ok, status: res.status, data })))
+      .then(({ ok, status, data }) => {
+        this.hideTypingIndicator();
+        if (ok) {
+          this.addAssistantMessage(data.answer, data.actions);
+        } else {
+          this.addAssistantMessage(
+            data.error || "I'm having trouble processing that request right now.",
+            [{ label: "Call Front Desk", type: "tel", value: "+919496200777" }]
+          );
+        }
+      })
+      .catch(() => {
+        this.hideTypingIndicator();
+        this.addAssistantMessage(
+          "We're having trouble connecting to the hotel server right now.",
+          [{ label: "Call Front Desk", type: "tel", value: "+919496200777" }]
+        );
+      })
+      .finally(() => {
+        this.loading = false;
+        this.scrollToBottom();
+      });
     },
 
     sendDirectMessage(msgText) {
