@@ -134,6 +134,22 @@ class StaffPanelAuthenticationTests(TestCase):
         self.assertEqual(res_blocked.status_code, 200)
         self.assertContains(res_blocked, "Too many failed login attempts")
 
+    def test_staff_login_graceful_when_cache_fails(self):
+        """Staff login degrades gracefully without 500 if cache/cache_table fails."""
+        from unittest.mock import patch
+        from django.db.utils import ProgrammingError
+
+        login_url = reverse('staff_panel:login')
+
+        with patch('django.core.cache.cache.get', side_effect=ProgrammingError('relation "cache_table" does not exist')):
+            # GET login page must return 200 without raising ProgrammingError
+            get_res = self.client.get(login_url)
+            self.assertEqual(get_res.status_code, 200)
+
+            # Valid POST login must succeed and redirect
+            post_res = self.client.post(login_url, {'username': 'staff_john', 'password': 'Password123!'})
+            self.assertEqual(post_res.status_code, 302)
+
     def test_staff_creation_password_validation(self):
         """StaffCreationForm rejects weak passwords via Django validators."""
         from staff_panel.forms import StaffCreateForm

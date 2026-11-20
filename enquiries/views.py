@@ -67,7 +67,12 @@ def submit_enquiry(request):
     client_ip = get_client_ip(request)
     ip_cache_key = f"enquiry_throttle_{client_ip}" if client_ip else None
     if ip_cache_key:
-        curr_count = cache.get(ip_cache_key)
+        curr_count = None
+        try:
+            curr_count = cache.get(ip_cache_key)
+        except Exception as e:
+            logger.warning("Cache unavailable for enquiry throttle check: %s", e)
+
         if curr_count is not None and curr_count >= 5:
             msg = 'Too many enquiry submissions from this network. Please wait a while or contact us directly.'
             if is_browser_html_submit:
@@ -82,13 +87,16 @@ def submit_enquiry(request):
 
         # Update rate limit counter atomically
         if ip_cache_key:
-            if cache.get(ip_cache_key) is None:
-                cache.set(ip_cache_key, 1, timeout=3600)
-            else:
-                try:
-                    cache.incr(ip_cache_key)
-                except ValueError:
+            try:
+                if cache.get(ip_cache_key) is None:
                     cache.set(ip_cache_key, 1, timeout=3600)
+                else:
+                    try:
+                        cache.incr(ip_cache_key)
+                    except ValueError:
+                        cache.set(ip_cache_key, 1, timeout=3600)
+            except Exception as e:
+                logger.warning("Cache unavailable for enquiry throttle update: %s", e)
 
         # Send notification (saved enquiry is preserved even if notification delivery fails)
         send_enquiry_notification(enquiry)

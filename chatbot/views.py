@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
@@ -6,6 +7,8 @@ from django.core.cache import cache
 
 from bookings.views import get_client_ip
 from .engine import answer, answer_intent
+
+logger = logging.getLogger(__name__)
 
 # Rate limiting constants
 CHAT_RATE_LIMIT_MESSAGES = 20
@@ -57,7 +60,11 @@ def chat_ask(request):
     # 4. Per-client Rate Limiting (20 messages per 10 minutes)
     client_ip = get_client_ip(request) or "unknown"
     ip_cache_key = f"chat_ratelimit_ip_{client_ip}"
-    current_count = cache.get(ip_cache_key)
+    current_count = None
+    try:
+        current_count = cache.get(ip_cache_key)
+    except Exception as e:
+        logger.warning("Cache unavailable for chat rate limit check: %s", e)
 
     if current_count is not None and current_count >= CHAT_RATE_LIMIT_MESSAGES:
         return JsonResponse({
@@ -65,31 +72,41 @@ def chat_ask(request):
         }, status=429)
 
     # Increment rate-limit counter
-    if current_count is None:
-        cache.set(ip_cache_key, 1, timeout=CHAT_RATE_LIMIT_WINDOW_SECONDS)
-    else:
-        try:
-            cache.incr(ip_cache_key)
-        except ValueError:
+    try:
+        if current_count is None:
             cache.set(ip_cache_key, 1, timeout=CHAT_RATE_LIMIT_WINDOW_SECONDS)
+        else:
+            try:
+                cache.incr(ip_cache_key)
+            except ValueError:
+                cache.set(ip_cache_key, 1, timeout=CHAT_RATE_LIMIT_WINDOW_SECONDS)
+    except Exception as e:
+        logger.warning("Cache unavailable for chat rate limit update: %s", e)
 
     # 5. Check client hourly unanswered question cap before calling engine
     unanswered_cache_key = f"chat_unanswered_ip_{client_ip}"
-    unanswered_count = cache.get(unanswered_cache_key, 0)
-    client_capped_unanswered = (unanswered_count >= UNANSWERED_RATE_LIMIT_PER_HOUR)
+    unanswered_count = 0
+    try:
+        unanswered_count = cache.get(unanswered_cache_key, 0)
+    except Exception as e:
+        logger.warning("Cache unavailable for chat unanswered count check: %s", e)
+    client_capped_unanswered = (unanswered_count is not None and unanswered_count >= UNANSWERED_RATE_LIMIT_PER_HOUR)
 
     # Pass to engine (honoring client hourly cap for unanswered question recording)
     response_data = answer(cleaned_message, record_unanswered=not client_capped_unanswered)
 
     # If the engine couldn't match and would record unanswered, track it against IP cap
     if not response_data.get("matched", False):
-        if unanswered_count == 0:
-            cache.set(unanswered_cache_key, 1, timeout=UNANSWERED_RATE_LIMIT_WINDOW_SECONDS)
-        else:
-            try:
-                cache.incr(unanswered_cache_key)
-            except ValueError:
+        try:
+            if not unanswered_count:
                 cache.set(unanswered_cache_key, 1, timeout=UNANSWERED_RATE_LIMIT_WINDOW_SECONDS)
+            else:
+                try:
+                    cache.incr(unanswered_cache_key)
+                except ValueError:
+                    cache.set(unanswered_cache_key, 1, timeout=UNANSWERED_RATE_LIMIT_WINDOW_SECONDS)
+        except Exception as e:
+            logger.warning("Cache unavailable for chat unanswered count update: %s", e)
 
     return JsonResponse(response_data)
 

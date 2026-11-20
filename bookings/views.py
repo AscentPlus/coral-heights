@@ -1,5 +1,6 @@
 from staff_panel.permissions import has_bookings_access
 import json
+import logging
 import secrets
 from datetime import datetime, timedelta
 from django.http import JsonResponse, Http404, HttpResponse
@@ -23,6 +24,8 @@ from .phone import canonicalize_phone, is_valid_phone
 from .otp_gateway import get_otp_gateway
 from .payment_gateway import get_payment_gateway
 from .constants import CANCELLATION_POLICY
+
+logger = logging.getLogger(__name__)
 
 
 def parse_post_data(request):
@@ -187,12 +190,15 @@ def send_otp(request):
     client_ip = get_client_ip(request)
     ip_cache_key = f"otp_ratelimit_ip_{client_ip}" if client_ip else None
     if ip_cache_key:
-        ip_count = cache.get(ip_cache_key)
-        if ip_count is not None and ip_count >= 5:
-            return JsonResponse({
-                'success': False,
-                'error': 'Too many verification code requests from this network. Please wait 10 minutes.'
-            }, status=429)
+        try:
+            ip_count = cache.get(ip_cache_key)
+            if ip_count is not None and ip_count >= 5:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Too many verification code requests from this network. Please wait 10 minutes.'
+                }, status=429)
+        except Exception as e:
+            logger.warning("Cache unavailable for OTP rate limit check: %s", e)
 
     now = timezone.now()
 
@@ -214,13 +220,16 @@ def send_otp(request):
     )
 
     if ip_cache_key:
-        if cache.get(ip_cache_key) is None:
-            cache.set(ip_cache_key, 1, timeout=600)
-        else:
-            try:
-                cache.incr(ip_cache_key)
-            except ValueError:
+        try:
+            if cache.get(ip_cache_key) is None:
                 cache.set(ip_cache_key, 1, timeout=600)
+            else:
+                try:
+                    cache.incr(ip_cache_key)
+                except ValueError:
+                    cache.set(ip_cache_key, 1, timeout=600)
+        except Exception as e:
+            logger.warning("Cache unavailable for OTP rate limit update: %s", e)
 
     otp_gateway = get_otp_gateway()
     otp_gateway.send(phone, code)

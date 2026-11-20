@@ -1,3 +1,4 @@
+import logging
 from bookings.services import (
     mark_booking_departed, cancel_booking, expire_stale_holds,
     get_overdue_bookings, get_room_statuses_today, get_reports_data
@@ -36,6 +37,8 @@ from .permissions import (
     superuser_required
 )
 
+logger = logging.getLogger(__name__)
+
 
 def staff_login(request):
     if request.user.is_authenticated and has_panel_access(request.user):
@@ -48,9 +51,14 @@ def staff_login(request):
     client_ip = get_client_ip(request)
     ip_cache_key = f"staff_login_failures_{client_ip}" if client_ip else None
 
-    # Throttling check
+    # Throttling check (gracefully degrades if cache backend is unavailable)
     if ip_cache_key:
-        failed_attempts = cache.get(ip_cache_key)
+        failed_attempts = None
+        try:
+            failed_attempts = cache.get(ip_cache_key)
+        except Exception as e:
+            logger.warning("Cache unavailable during staff login throttle check: %s", e)
+
         if failed_attempts is not None and failed_attempts >= 5:
             return render(request, 'staff_panel/login.html', {
                 'form': form,
@@ -78,7 +86,10 @@ def staff_login(request):
             if user is not None and user.is_active and has_panel_access(user):
                 # Clear failure count on successful login
                 if ip_cache_key:
-                    cache.delete(ip_cache_key)
+                    try:
+                        cache.delete(ip_cache_key)
+                    except Exception as e:
+                        logger.warning("Cache unavailable on staff login clear: %s", e)
 
                 login(request, user)
                 next_url = request.GET.get('next') or reverse(
@@ -87,13 +98,16 @@ def staff_login(request):
             else:
                 # Increment failed attempts atomically
                 if ip_cache_key:
-                    if cache.get(ip_cache_key) is None:
-                        cache.set(ip_cache_key, 1, timeout=600)
-                    else:
-                        try:
-                            cache.incr(ip_cache_key)
-                        except ValueError:
+                    try:
+                        if cache.get(ip_cache_key) is None:
                             cache.set(ip_cache_key, 1, timeout=600)
+                        else:
+                            try:
+                                cache.incr(ip_cache_key)
+                            except ValueError:
+                                cache.set(ip_cache_key, 1, timeout=600)
+                    except Exception as e:
+                        logger.warning("Cache unavailable on staff login failure count: %s", e)
                 error_message = "Invalid username or password."
         else:
             error_message = "Invalid username or password."
