@@ -7,7 +7,7 @@
     id="chatLauncherBtn"
     type="button"
     @click="toggleChat"
-    class="fixed bottom-24 right-6 z-50 w-13 h-13 sm:w-14 sm:h-14 bg-white/85 hover:bg-white text-teal-950 border border-teal-900/15 shadow-xl backdrop-blur-md rounded-full flex items-center justify-center hover:scale-105 transition-all focus:outline-none focus:ring-4 focus:ring-teal-700/20 cursor-pointer"
+    class="fixed bottom-24 right-6 z-50 w-14 h-14 bg-white/90 hover:bg-white text-teal-950 border border-teal-900/15 shadow-xl backdrop-blur-md rounded-full flex items-center justify-center hover:scale-105 transition-all focus:outline-none focus:ring-4 focus:ring-teal-700/20 cursor-pointer"
     aria-label="Open Hotel Assistant Chat"
     title="Chat with Hotel Assistant"
   >
@@ -16,7 +16,7 @@
       <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
     </svg>
     <!-- Close Icon when open -->
-    <svg x-show="isOpen" class="w-6 h-6 text-teal-950" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <svg x-show="isOpen" x-cloak class="w-6 h-6 text-teal-950" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display: none;">
       <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
     </svg>
   </button>
@@ -28,7 +28,7 @@
     aria-label="Hotel Assistant"
     aria-modal="true"
     x-show="isOpen"
-    class="fixed inset-x-0 bottom-0 z-50 flex flex-col bg-white shadow-2xl border border-teal-900/10 overflow-hidden transition-all duration-300 rounded-t-2xl sm:rounded-2xl sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[340px] max-h-[80vh] h-[470px]"
+    class="fixed inset-x-0 bottom-0 z-[60] flex flex-col bg-white shadow-2xl border border-teal-900/10 overflow-hidden transition-all duration-300 rounded-t-2xl sm:rounded-2xl sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[340px] max-h-[80vh] h-[470px]"
     style="display: none;"
   >
     <!-- Header: Deep Teal Palette with Robot Avatar & Name -->

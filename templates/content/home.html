@@ -6,11 +6,11 @@
   <section
     id="hero"
     x-data="heroVideo"
-    class="relative h-screen min-h-[100svh] overflow-hidden">
+    class="hero-responsive relative w-full overflow-hidden">
 
     <h1 class="sr-only">Hotel Coral Heights — Ambalapuzha, Alappuzha</h1>
 
-    <video x-ref="video" class="absolute inset-0 w-full h-full object-cover"
+    <video x-ref="video" class="hero-video w-full h-full object-cover"
            autoplay muted loop playsinline preload="auto"
            poster="{% static 'images/hero-poster.jpg' %}"
            disablepictureinpicture disableremoteplayback
@@ -19,8 +19,8 @@
       <source src="{% static 'video/hero.mp4' %}" type="video/mp4">
     </video>
 
-    <!-- Top vignette gradient for nav legibility (scrim overlay) -->
-    <div class="hero-vignette-top absolute top-0 inset-x-0 h-56 md:h-64 bg-gradient-to-b from-black/75 via-black/35 to-transparent pointer-events-none z-[1]" aria-hidden="true"></div>
+    <!-- Top vignette gradient for nav legibility on mobile & desktop -->
+    <div class="hero-vignette-top pointer-events-none z-[1]" aria-hidden="true"></div>
   </section>
   
   <!-- Check Availability Widget (Booking.com-Inspired Compact Horizontal Bar) -->
@@ -94,7 +94,7 @@
               </svg>
               <div class="flex-1 min-w-0">
                 <span class="block text-[10px] font-bold text-teal-900 uppercase tracking-wider leading-none mb-1">Guests</span>
-                <span class="block text-xs sm:text-sm font-semibold text-teal-950 truncate" x-text="adults + ' Adults · ' + children + ' Kids'">2 Adults · 0 Kids</span>
+                <span class="block text-xs sm:text-sm font-semibold text-teal-950 truncate" x-text="guestsSummary">2 Adults · 0 Kids</span>
               </div>
               <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
@@ -255,62 +255,82 @@
     </div>
   </section>
   
-  <!-- Rooms & Suites Section (Database Backed) -->
-  <section id="rooms" class="py-24 md:py-32 px-4 bg-watermark">
-    <div class="max-w-7xl mx-auto">
+  <!-- Rooms & Suites Section (Editorial Alternating Showcase) -->
+  <section id="rooms" class="py-20 md:py-28 px-4 sm:px-6 lg:px-8 bg-watermark">
+    <div class="max-w-6xl mx-auto">
       <!-- Section header -->
-      <div class="text-center mb-16 reveal">
-        <p class="text-gold text-sm font-semibold tracking-[.2em] uppercase mb-3">Accommodation</p>
+      <div class="text-center mb-14 md:mb-20 reveal">
+        <p class="text-gold text-xs sm:text-sm font-semibold tracking-[.25em] uppercase mb-3">Accommodation</p>
         <h2 class="font-serif text-3xl md:text-4xl lg:text-5xl text-teal-950">Rooms &amp; Suites</h2>
         <div class="w-16 h-0.5 bg-gold mx-auto mt-5"></div>
       </div>
 
-      <!-- Room cards grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
+      <!-- Alternating Room Showcase Rows -->
+      <div class="space-y-6 lg:space-y-8">
         {% for room in room_types %}
-          <article class="room-card bg-white rounded-2xl overflow-hidden shadow-lg shadow-teal-950/5 reveal-child" id="room-{{ room.slug }}" data-room-slug="{{ room.slug }}" x-data="roomCard">
-            <div class="relative overflow-hidden aspect-[4/3]">
-              <img
-                src="{{ room.display_image_url }}"
-                alt="{{ room.name }} — Hotel Coral Heights"
-                class="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
-                loading="lazy"
-              />
-              <span class="absolute top-4 right-4 bg-teal-900/90 text-gold text-sm font-semibold px-4 py-1.5 rounded-full backdrop-blur-sm shadow-md">
-                From ₹{{ room.base_price_per_night|floatformat:"0" }}/night
-              </span>
-            </div>
-            <div class="p-6 md:p-7">
-              <h3 class="font-serif text-2xl text-teal-950 mb-2">{{ room.name }}</h3>
-              <p class="text-gray-600 text-sm leading-relaxed mb-5">{{ room.short_description }}</p>
-              <!-- Amenity icons -->
-              <div class="flex items-center gap-5 mb-6 text-teal-700">
-                <div class="flex items-center gap-1.5 text-xs" title="Max occupancy: {{ room.max_occupancy }}">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                  <span>1–{{ room.max_occupancy }}</span>
+          <article
+            class="room-card group bg-white border border-stone-200/80 shadow-xs reveal-child rounded-none overflow-hidden"
+            id="room-{{ room.slug }}"
+            data-room-slug="{{ room.slug }}"
+            x-data="roomCard"
+          >
+            <div class="flex flex-col lg:flex-row {% if forloop.counter|divisibleby:2 %}lg:flex-row-reverse{% endif %} items-stretch">
+              
+              <!-- Image Column -->
+              <div class="relative w-full lg:w-1/2 min-h-[220px] sm:min-h-[280px] lg:min-h-[330px] bg-slate-900 overflow-hidden rounded-none">
+                <img
+                  src="{{ room.display_image_url|default:'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=80&auto=format&fit=crop' }}"
+                  alt="{{ room.name }} — Hotel Coral Heights"
+                  class="w-full h-full object-cover group-hover:scale-105 hover:scale-105 transition-transform duration-700 rounded-none"
+                  loading="lazy"
+                />
+                <span class="absolute top-4 left-4 lg:top-5 lg:left-5 bg-teal-950/90 text-gold text-xs sm:text-sm font-semibold px-3.5 py-1.5 backdrop-blur-sm shadow-md tracking-wider border-l-2 border-gold rounded-none">
+                  From ₹{{ room.base_price_per_night|floatformat:"0" }}/night
+                </span>
+              </div>
+
+              <!-- Details Column -->
+              <div class="w-full lg:w-1/2 p-5 sm:p-7 lg:p-8 xl:p-9 flex flex-col justify-between bg-white rounded-none">
+                <div>
+                  <div class="flex items-center justify-between gap-4 mb-1.5">
+                    <span class="text-[11px] sm:text-xs font-bold text-gold uppercase tracking-[0.2em] block">Heritage Accommodation</span>
+                    <span class="text-[11px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider hidden sm:inline-block">Taxes Included</span>
+                  </div>
+                  <h3 class="font-serif text-xl sm:text-2xl lg:text-3xl text-teal-950 mb-2 tracking-tight">{{ room.name }}</h3>
+                  <p class="text-gray-600 text-xs sm:text-sm leading-relaxed mb-4 line-clamp-2 sm:line-clamp-none">{{ room.short_description }}</p>
+
+                  <!-- Room Amenities -->
+                  <div class="grid grid-cols-2 gap-2.5 sm:gap-3 py-3 border-y border-stone-100 text-teal-900 text-xs mb-4 sm:mb-5">
+                    <div class="flex items-center gap-2" title="Max occupancy: {{ room.max_occupancy }}">
+                      <svg class="w-4 h-4 text-gold flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                      <span>1–{{ room.max_occupancy }} Guests</span>
+                    </div>
+                    <div class="flex items-center gap-2" title="{{ room.bed_type }} Bed">
+                      <svg class="w-4 h-4 text-gold flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4v16"/><path d="M22 4v16"/><path d="M2 12h20"/><path d="M2 8h20"/><rect x="6" y="4" width="4" height="4" rx="1"/><rect x="14" y="4" width="4" height="4" rx="1"/></svg>
+                      <span>{{ room.bed_type }} Bed</span>
+                    </div>
+                    <div class="flex items-center gap-2" title="Free High-Speed WiFi">
+                      <svg class="w-4 h-4 text-gold flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+                      <span>High-Speed WiFi</span>
+                    </div>
+                    <div class="flex items-center gap-2" title="Breakfast Included">
+                      <svg class="w-4 h-4 text-gold flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><path d="M6 1v3"/><path d="M10 1v3"/><path d="M14 1v3"/></svg>
+                      <span>Breakfast Included</span>
+                    </div>
+                  </div>
                 </div>
-                <div class="flex items-center gap-1.5 text-xs" title="Free WiFi">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><circle cx="12" cy="20" r="1"/></svg>
-                  <span>WiFi</span>
-                </div>
-                <div class="flex items-center gap-1.5 text-xs" title="{{ room.bed_type }} Bed">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 4v16"/><path d="M22 4v16"/><path d="M2 12h20"/><path d="M2 8h20"/><rect x="6" y="4" width="4" height="4" rx="1"/><rect x="14" y="4" width="4" height="4" rx="1"/></svg>
-                  <span>{{ room.bed_type }}</span>
-                </div>
-                <div class="flex items-center gap-1.5 text-xs" title="Breakfast Included">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><path d="M6 1v3"/><path d="M10 1v3"/><path d="M14 1v3"/></svg>
-                  <span>B'fast</span>
+
+                <!-- Action CTAs -->
+                <div class="flex flex-wrap items-center gap-3 pt-1">
+                  <a href="{% url 'content:room_detail' room.slug %}" class="inline-flex items-center justify-center px-5 py-2.5 border-2 border-teal-900 text-teal-900 text-xs font-semibold tracking-wider hover:bg-teal-950 hover:text-white transition-all rounded-none uppercase">
+                    View Details
+                  </a>
+                  <a href="#availability" class="btn-gold inline-flex items-center justify-center px-5 py-2.5 bg-gold text-teal-950 text-xs font-bold tracking-wider hover:bg-gold-light transition-all shadow-sm rounded-none uppercase">
+                    Check Availability
+                  </a>
                 </div>
               </div>
-              <!-- Actions -->
-              <div class="flex items-center gap-3">
-                <a href="{% url 'content:room_detail' room.slug %}" class="flex-1 text-center py-2.5 border-2 border-teal-800 text-teal-800 text-sm font-semibold rounded-lg hover:bg-teal-800 hover:text-white transition-all focus:outline-none focus:ring-2 focus:ring-teal-600/30">
-                  View Details
-                </a>
-                <a href="#availability" class="flex-1 text-center py-2.5 bg-gold text-teal-950 text-sm font-semibold rounded-lg hover:bg-gold-light transition-all focus:outline-none focus:ring-2 focus:ring-gold/30">
-                  Check Availability
-                </a>
-              </div>
+
             </div>
           </article>
         {% endfor %}
@@ -767,17 +787,19 @@
     </div>
   </section>
 
-  <!-- Map Location Section (Full-Width) -->
-  <section id="map" class="w-full relative leading-none overflow-hidden m-0 p-0 block">
-    <iframe
-      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3936.4342405215953!2d76.35619257361628!3d9.383230483346427!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3b089bf6a11875b7%3A0x9e8dd3cbc7a0f8f5!2sHotel%20Coral%20Heights%2C%20Ambalapuzha.!5e0!3m2!1sen!2sin!4v1788503592150!5m2!1sen!2sin"
-      class="w-full block border-0 m-0 p-0"
-      style="height: 400px; min-height: 40vh;"
-      allowfullscreen=""
-      loading="lazy"
-      referrerpolicy="strict-origin-when-cross-origin"
-      title="Hotel Coral Heights Location Map"
-    ></iframe>
+  <!-- Map Location Section -->
+  <section id="map" class="w-full bg-watermark py-8 sm:py-12 scroll-mt-20">
+    <div class="w-full border-y border-stone-200/80">
+      <iframe
+        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3936.4342405215953!2d76.35619257361628!3d9.383230483346427!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3b089bf6a11875b7%3A0x9e8dd3cbc7a0f8f5!2sHotel%20Coral%20Heights%2C%20Ambalapuzha.!5e0!3m2!1sen!2sin!4v1788503592150!5m2!1sen!2sin"
+        class="w-full block border-0 m-0 p-0"
+        style="height: 420px; min-height: 40vh;"
+        allowfullscreen=""
+        loading="lazy"
+        referrerpolicy="strict-origin-when-cross-origin"
+        title="Hotel Coral Heights Location Map"
+      ></iframe>
+    </div>
   </section>
 
   <!-- Hotel Assistant Chatbot (Homepage Only) -->

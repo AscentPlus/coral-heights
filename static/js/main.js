@@ -259,6 +259,10 @@ document.addEventListener('alpine:init', () => {
       return formatDateDMY(this.checkout) || 'Selected dates';
     },
 
+    get guestsSummary() {
+      return `${this.adults} Adults · ${this.children} Kids`;
+    },
+
     get hasMultipleAdults() {
       return this.adults > 1;
     },

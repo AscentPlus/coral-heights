@@ -107,6 +107,15 @@
           <p class="text-gray-500 text-sm">Menu details are being curated. Please contact our restaurant desk directly for today's specials.</p>
         </div>
       {% endif %}      
+    </div>
+
+    <!-- Dietary & Food Allergy Note -->
+    <div class="mt-12 bg-cream/50 rounded-2xl p-6 border border-teal-900/10 text-center max-w-2xl mx-auto">
+      <h4 class="font-serif font-bold text-base text-teal-950 mb-1">Dietary &amp; Food Allergy Note</h4>
+      <p class="text-xs text-gray-600 leading-relaxed">
+        {{ restaurant_info.extra_notes|default:"Please inform our staff of any dietary requirements, allergies, or special food preferences prior to ordering. Jain, gluten-free, and custom preparations are available upon advance request." }}
+      </p>
+    </div>
   </div>
 </main>
 {% endblock %}
