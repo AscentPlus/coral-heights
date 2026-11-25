@@ -536,7 +536,6 @@ class ChatbotAuditRegressionTests(TestCase):
             dinner_hours="7:30 PM to 10:30 PM",
             thattukada_hours="5:00 PM to 9:00 PM",
             room_service_info="Room service available from 7:00 AM to 11:00 PM",
-            extra_notes="Fresh seafood prepared to order."
         )
 
         cls.cat_kerala = MenuCategory.objects.create(name="Kerala Specials", display_order=1)

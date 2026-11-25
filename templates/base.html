@@ -72,6 +72,7 @@
           <a href="{% url 'content:home' %}#facilities" class="nav-link-item text-sm font-medium tracking-wide text-white/90 hover:text-white transition-colors">Facilities</a>
           <a href="{% url 'content:dining' %}" class="nav-link-item text-sm font-medium tracking-wide text-white/90 hover:text-white transition-colors">Restaurant</a>
           <a href="{% url 'content:home' %}#events" class="nav-link-item text-sm font-medium tracking-wide text-white/90 hover:text-white transition-colors">Events</a>
+          <a href="{% url 'content:home' %}#gallery" class="nav-link-item text-sm font-medium tracking-wide text-white/90 hover:text-white transition-colors">Gallery</a>
           <a href="{% url 'content:location' %}" class="nav-link-item text-sm font-medium tracking-wide text-white/90 hover:text-white transition-colors">Location</a>
         </div>
         
@@ -114,6 +115,7 @@
         <a @click="closeMobile" href="{% url 'content:home' %}#facilities" class="block text-white font-medium py-2 hover:text-gold transition-colors border-b border-white/10">Facilities</a>
         <a @click="closeMobile" href="{% url 'content:dining' %}" class="block text-white font-medium py-2 hover:text-gold transition-colors border-b border-white/10">Restaurant &amp; Dining</a>
         <a @click="closeMobile" href="{% url 'content:home' %}#events" class="block text-white font-medium py-2 hover:text-gold transition-colors border-b border-white/10">Events &amp; Banquets</a>
+        <a @click="closeMobile" href="{% url 'content:home' %}#gallery" class="block text-white font-medium py-2 hover:text-gold transition-colors border-b border-white/10">Gallery</a>
         <a @click="closeMobile" href="{% url 'content:location' %}" class="block text-white font-medium py-2 hover:text-gold transition-colors">Location &amp; Directions</a>
         <div class="pt-2">
           <a href="tel:{{ contact_info.primary_phone_clean }}" class="flex items-center gap-2 text-gold text-sm mb-4">

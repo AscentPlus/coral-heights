@@ -225,3 +225,33 @@ class ContactInformation(models.Model):
     def whatsapp_url(self):
         clean_num = ''.join(filter(str.isdigit, self.whatsapp_number))
         return f"https://wa.me/{clean_num}"
+
+
+HOME_GALLERY_MAX = 7
+
+
+class GalleryImage(models.Model):
+    title = models.CharField(
+        max_length=150, blank=True, help_text="Optional caption or title")
+    image = models.ImageField(upload_to='gallery/')
+    show_on_home = models.BooleanField(
+        default=False,
+        help_text=f"Show this photo in the homepage gallery section (max {HOME_GALLERY_MAX})."
+    )
+    display_order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['display_order', '-created_at']
+        verbose_name = 'Gallery Image'
+        verbose_name_plural = 'Gallery Images'
+
+    def __str__(self):
+        return self.title or f"Gallery Photo #{self.id}"
+
+    @property
+    def is_portrait(self):
+        try:
+            return bool(self.image and self.image.height > self.image.width)
+        except Exception:
+            return False

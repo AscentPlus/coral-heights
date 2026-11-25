@@ -106,7 +106,7 @@ class StaffCreateForm(forms.Form):
 
 # --- Website Content Management Forms ---
 from django.utils.text import slugify
-from content.models import RoomType, Facility, Attraction, ContactInformation
+from content.models import RoomType, Facility, Attraction, ContactInformation, GalleryImage, HOME_GALLERY_MAX
 
 input_style = "w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-700/20 bg-white"
 textarea_style = "w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-700/20 bg-white"
@@ -114,18 +114,10 @@ file_style = "w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:r
 
 
 class RoomTypeForm(forms.ModelForm):
-    slug = forms.CharField(
-        required=False,
-        widget=forms.TextInput(attrs={
-            'placeholder': 'Auto-generated from name if left blank',
-            'class': input_style
-        })
-    )
-
     class Meta:
         model = RoomType
         fields = [
-            'name', 'slug', 'short_description', 'long_description',
+            'name', 'short_description', 'long_description',
             'base_price_per_night', 'max_occupancy', 'bed_type',
             'image', 'image_url', 'display_order'
         ]
@@ -141,20 +133,22 @@ class RoomTypeForm(forms.ModelForm):
             'display_order': forms.NumberInput(attrs={'class': input_style}),
         }
 
-    def clean_slug(self):
-        slug = self.cleaned_data.get('slug', '').strip()
-        name = self.cleaned_data.get('name', '').strip()
-        if not slug and name:
-            slug = slugify(name)
-
-        # Ensure slug is unique if creating or changing
-        instance = getattr(self, 'instance', None)
-        qs = RoomType.objects.filter(slug=slug)
-        if instance and instance.pk:
-            qs = qs.exclude(pk=instance.pk)
-        if qs.exists():
-            raise forms.ValidationError("A room type with this slug already exists.")
-        return slug
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if not instance.slug:
+            base_slug = slugify(instance.name) or 'room'
+            slug = base_slug
+            counter = 2
+            qs = RoomType.objects.all()
+            if instance.pk:
+                qs = qs.exclude(pk=instance.pk)
+            while qs.filter(slug=slug).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            instance.slug = slug
+        if commit:
+            instance.save()
+        return instance
 
 
 class FacilityForm(forms.ModelForm):
@@ -201,4 +195,33 @@ class ContactInformationForm(forms.ModelForm):
             'address_line_2': forms.TextInput(attrs={'class': input_style}),
             'address_line_3': forms.TextInput(attrs={'class': input_style}),
         }
+
+
+class GalleryImageForm(forms.ModelForm):
+    class Meta:
+        model = GalleryImage
+        fields = ['title', 'image', 'show_on_home', 'display_order']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': input_style,
+                'placeholder': 'Optional caption or title',
+            }),
+            'image': forms.FileInput(attrs={'class': file_style}),
+            'show_on_home': forms.CheckboxInput(attrs={
+                'class': 'w-4 h-4 text-teal-800 rounded border-slate-300 focus:ring-teal-700',
+            }),
+            'display_order': forms.NumberInput(attrs={'class': input_style}),
+        }
+
+    def clean_show_on_home(self):
+        show_on_home = self.cleaned_data.get('show_on_home')
+        if show_on_home:
+            qs = GalleryImage.objects.filter(show_on_home=True)
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.count() >= HOME_GALLERY_MAX:
+                raise forms.ValidationError(
+                    f"Maximum {HOME_GALLERY_MAX} images can be featured on the homepage. Uncheck another image first."
+                )
+        return show_on_home
 

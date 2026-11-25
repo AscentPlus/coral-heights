@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
 from django.urls import reverse
-from .models import RoomType, Facility, Attraction, ContactInformation
+from .models import RoomType, Facility, Attraction, ContactInformation, GalleryImage, HOME_GALLERY_MAX
 from hotel_info.models import HotelInfo, RestaurantInfo, MenuCategory, NearbyPlace
 
 
@@ -12,6 +12,8 @@ def home_view(request):
     hotel_info = HotelInfo.objects.first()
     restaurant_info = RestaurantInfo.objects.first()
     contact_info = ContactInformation.objects.first()
+    gallery_images = GalleryImage.objects.filter(show_on_home=True)[:HOME_GALLERY_MAX]
+    has_gallery = GalleryImage.objects.exists()
 
     enquiry_errors = request.session.pop('enquiry_errors', None)
     enquiry_data = request.session.pop('enquiry_data', None)
@@ -23,6 +25,8 @@ def home_view(request):
         'hotel_info': hotel_info,
         'restaurant_info': restaurant_info,
         'contact_info': contact_info,
+        'gallery_images': gallery_images,
+        'has_gallery': has_gallery,
         'enquiry_errors': enquiry_errors,
         'enquiry_data': enquiry_data or {},
     }
@@ -68,6 +72,15 @@ def dining_view(request):
     return render(request, 'content/dining.html', context)
 
 
+def gallery_view(request):
+    gallery_images = GalleryImage.objects.all()
+    contact_info = ContactInformation.objects.first()
+    return render(request, 'content/gallery.html', {
+        'gallery_images': gallery_images,
+        'contact_info': contact_info,
+    })
+
+
 def events_view(request):
     return redirect('/#events')
 
@@ -100,6 +113,7 @@ def sitemap_view(request):
     urls = [
         f"{base_url}{reverse('content:home')}",
         f"{base_url}{reverse('content:dining')}",
+        f"{base_url}{reverse('content:gallery')}",
         f"{base_url}{reverse('content:location')}",
         f"{base_url}{reverse('bookings:booking_page')}",
     ]

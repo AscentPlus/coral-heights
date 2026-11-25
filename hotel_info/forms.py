@@ -38,7 +38,7 @@ class RestaurantInfoForm(forms.ModelForm):
         fields = [
             'name', 'cuisine_description', 'breakfast_hours',
             'lunch_hours', 'dinner_hours', 'thattukada_hours',
-            'room_service_info', 'extra_notes'
+            'room_service_info',
         ]
         widgets = {
             'name': forms.TextInput(attrs={'class': input_style}),
@@ -47,8 +47,7 @@ class RestaurantInfoForm(forms.ModelForm):
             'lunch_hours': forms.TextInput(attrs={'class': input_style}),
             'dinner_hours': forms.TextInput(attrs={'class': input_style}),
             'thattukada_hours': forms.TextInput(attrs={'class': input_style}),
-            'room_service_info': forms.Textarea(attrs={'class': textarea_style, 'rows': 2}),
-            'extra_notes': forms.Textarea(attrs={'class': textarea_style, 'rows': 2}),
+            'room_service_info': forms.TextInput(attrs={'class': input_style}),
         }
 
 

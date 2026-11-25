@@ -14,14 +14,14 @@ from django.contrib.auth.forms import PasswordChangeForm
 from django.utils import timezone
 from django.db.models import Q, ProtectedError
 
-from content.models import Room, RoomType, Facility, Attraction, ContactInformation
+from content.models import Room, RoomType, Facility, Attraction, ContactInformation, GalleryImage, HOME_GALLERY_MAX
 from bookings.models import Booking
 from enquiries.models import Enquiry
 
 from .models import StaffProfile
 from .forms import (
     StaffLoginForm, StaffCreateForm,
-    RoomTypeForm, FacilityForm, AttractionForm, ContactInformationForm
+    RoomTypeForm, FacilityForm, AttractionForm, ContactInformationForm, GalleryImageForm
 )
 from django.views.decorators.http import require_POST
 from django.core.cache import cache
@@ -475,6 +475,9 @@ def website_dashboard(request):
         'room_types_count': RoomType.objects.count(),
         'facilities_count': Facility.objects.count(),
         'attractions_count': Attraction.objects.count(),
+        'gallery_count': GalleryImage.objects.count(),
+        'gallery_home_count': GalleryImage.objects.filter(show_on_home=True).count(),
+        'gallery_home_max': HOME_GALLERY_MAX,
         'contact': contact,
         'menu_items_count': MenuItem.objects.count(),
         'nearby_places_count': NearbyPlace.objects.count(),
@@ -635,6 +638,58 @@ def website_attraction_delete(request, pk):
         attraction.delete()
         messages.success(request, f"Attraction '{name}' deleted successfully.")
     return redirect('staff_panel:website_attractions')
+
+
+@website_access_required
+def website_gallery(request):
+    photos = GalleryImage.objects.all()
+    form = GalleryImageForm()
+    edit_id = request.GET.get('edit')
+    edit_photo = None
+
+    if edit_id:
+        edit_photo = get_object_or_404(GalleryImage, id=edit_id)
+        if request.method != 'POST':
+            form = GalleryImageForm(instance=edit_photo)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'create':
+            form = GalleryImageForm(request.POST, request.FILES)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Gallery photo uploaded successfully.")
+                return redirect('staff_panel:website_gallery')
+            else:
+                messages.error(request, "Failed to upload photo. Please check errors below.")
+        elif action == 'edit':
+            photo_id = request.POST.get('photo_id')
+            edit_photo = get_object_or_404(GalleryImage, id=photo_id)
+            form = GalleryImageForm(request.POST, request.FILES, instance=edit_photo)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Gallery photo updated successfully.")
+                return redirect('staff_panel:website_gallery')
+            else:
+                messages.error(request, "Failed to update photo. Please check errors below.")
+
+    home_count = GalleryImage.objects.filter(show_on_home=True).count()
+    return render(request, 'staff_panel/website/gallery.html', {
+        'photos': photos,
+        'form': form,
+        'edit_photo': edit_photo,
+        'home_count': home_count,
+        'home_max': HOME_GALLERY_MAX,
+    })
+
+
+@website_access_required
+def website_gallery_delete(request, pk):
+    if request.method == 'POST':
+        photo = get_object_or_404(GalleryImage, pk=pk)
+        photo.delete()
+        messages.success(request, "Gallery photo deleted successfully.")
+    return redirect('staff_panel:website_gallery')
 
 
 @website_access_required

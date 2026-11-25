@@ -16,8 +16,7 @@
         <span>&rarr;</span>
         <span class="text-teal-700">Chatbot FAQs</span>
       </div>
-      <h3 class="font-serif font-bold text-2xl sm:text-3xl text-teal-950">Chatbot FAQs &amp; Knowledge Base</h3>
-      <p class="text-xs text-slate-500 mt-1">Add custom Q&amp;A entries. Staff-entered FAQs match user keywords (including Malayalam/Manglish) and take priority over default answers.</p>
+      <h3 class="font-serif font-bold text-2xl sm:text-3xl text-teal-950">Chatbot FAQs</h3>
     </div>
 
     <div>
@@ -52,7 +51,7 @@
     <!-- Left: Existing FAQs Table -->
     <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6 space-y-4">
       <div class="flex items-center justify-between">
-        <h4 class="font-serif font-bold text-xl text-teal-950">Active &amp; Configured FAQs</h4>
+        <h4 class="font-serif font-bold text-xl text-teal-950">FAQs</h4>
         <span class="px-3 py-1 bg-emerald-50 text-emerald-800 rounded-full text-xs font-bold">{{ faqs|length }} Total</span>
       </div>
 
@@ -130,9 +129,6 @@
         <h4 class="font-serif font-bold text-xl text-teal-950">
           {% if edit_faq %}Edit FAQ{% else %}Add Chatbot FAQ{% endif %}
         </h4>
-        <p class="text-xs text-slate-500 mt-0.5">
-          Enter what guests ask, trigger keywords, and the exact answer to reply with.
-        </p>
       </div>
 
       <form method="POST" class="space-y-4">
@@ -152,7 +148,7 @@
         {% endif %}
 
         <div>
-          <label for="{{ form.question.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Question / Topic *</label>
+          <label for="{{ form.question.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Question *</label>
           {{ form.question }}
           {% if form.question.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.question.errors.0 }}</p>{% endif %}
         </div>
@@ -160,12 +156,11 @@
         <div>
           <label for="{{ form.keywords.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Trigger Keywords (comma-separated)</label>
           {{ form.keywords }}
-          <p class="text-[11px] text-slate-400 mt-1">E.g. swimming pool, water, neenthukulam, samayam, timing</p>
           {% if form.keywords.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.keywords.errors.0 }}</p>{% endif %}
         </div>
 
         <div>
-          <label for="{{ form.answer.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Answer Text *</label>
+          <label for="{{ form.answer.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Answer *</label>
           {{ form.answer }}
           {% if form.answer.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.answer.errors.0 }}</p>{% endif %}
         </div>

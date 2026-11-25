@@ -27,6 +27,8 @@ urlpatterns = [
     path('website/facilities/<int:pk>/delete/', views.website_facility_delete, name='website_facility_delete'),
     path('website/attractions/', views.website_attractions, name='website_attractions'),
     path('website/attractions/<int:pk>/delete/', views.website_attraction_delete, name='website_attraction_delete'),
+    path('website/gallery/', views.website_gallery, name='website_gallery'),
+    path('website/gallery/<int:pk>/delete/', views.website_gallery_delete, name='website_gallery_delete'),
     path('website/contact/', views.website_contact, name='website_contact'),
     # Hotel & Restaurant Details / Chatbot Info
     path('website/hotel-info/', hotel_views.website_hotel_details, name='website_hotel_details'),

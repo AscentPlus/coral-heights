@@ -93,10 +93,6 @@ class RestaurantInfo(models.Model):
         blank=True,
         help_text='Room service hours and availability.'
     )
-    extra_notes = models.TextField(
-        blank=True,
-        help_text='Special diet options, dining policies, reservation info.'
-    )
 
     class Meta:
         verbose_name = 'Restaurant Information'

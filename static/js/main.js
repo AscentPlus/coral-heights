@@ -1348,6 +1348,156 @@ document.addEventListener('alpine:init', () => {
     }
   }));
 
+  // Horizontal Attractions Timeline with seamless infinite scrolling
+  Alpine.data('attractionsTimeline', () => ({
+    _setWidth: 0,
+    _stepWidth: 280,
+    _isAdjusting: false,
+
+    init() {
+      const track = this.$refs.track;
+      if (!track) return;
+
+      const originals = Array.from(track.querySelectorAll('.timeline-h-item'));
+      if (!originals.length) return;
+
+      this.$nextTick(() => {
+        const firstItem = originals[0];
+        this._stepWidth = firstItem.offsetWidth || 280;
+        this._setWidth = originals.reduce((sum, el) => sum + el.offsetWidth, 0);
+        if (!this._setWidth) return;
+
+        // Clone sets before and after so scrolling is seamless in both directions
+        const beforeFrag = document.createDocumentFragment();
+        const afterFrag = document.createDocumentFragment();
+        originals.forEach((item) => {
+          const cloneBefore = item.cloneNode(true);
+          cloneBefore.classList.add('visible');
+          cloneBefore.setAttribute('aria-hidden', 'true');
+          beforeFrag.appendChild(cloneBefore);
+
+          const cloneAfter = item.cloneNode(true);
+          cloneAfter.classList.add('visible');
+          cloneAfter.setAttribute('aria-hidden', 'true');
+          afterFrag.appendChild(cloneAfter);
+        });
+
+        track.insertBefore(beforeFrag, track.firstChild);
+        track.appendChild(afterFrag);
+
+        // Start positioned at the first original item (middle set)
+        this._isAdjusting = true;
+        track.scrollLeft = this._setWidth;
+        this._isAdjusting = false;
+
+        track.addEventListener('scroll', () => {
+          if (this._isAdjusting || !this._setWidth) return;
+          if (track.scrollLeft >= this._setWidth * 2) {
+            this._isAdjusting = true;
+            track.scrollLeft -= this._setWidth;
+            this._isAdjusting = false;
+          } else if (track.scrollLeft <= 0) {
+            this._isAdjusting = true;
+            track.scrollLeft += this._setWidth;
+            this._isAdjusting = false;
+          }
+        }, { passive: true });
+      });
+    },
+
+    scrollNext() {
+      const track = this.$refs.track;
+      if (!track || !this._setWidth) return;
+
+      if (track.scrollLeft + this._stepWidth >= this._setWidth * 2) {
+        this._isAdjusting = true;
+        track.scrollLeft -= this._setWidth;
+        this._isAdjusting = false;
+      }
+      track.scrollBy({ left: this._stepWidth, behavior: 'smooth' });
+    },
+
+    scrollPrev() {
+      const track = this.$refs.track;
+      if (!track || !this._setWidth) return;
+
+      if (track.scrollLeft - this._stepWidth <= 0) {
+        this._isAdjusting = true;
+        track.scrollLeft += this._setWidth;
+        this._isAdjusting = false;
+      }
+      track.scrollBy({ left: -this._stepWidth, behavior: 'smooth' });
+    }
+  }));
+
+  // CSP-safe Gallery Lightbox for Home & Full Gallery page
+  Alpine.data('galleryLightbox', () => ({
+    isOpen: false,
+    activeIndex: 0,
+    items: [],
+
+    init() {
+      this._collectItems();
+    },
+
+    _collectItems() {
+      const els = this.$el.querySelectorAll('.gallery-lightbox-item');
+      this.items = Array.from(els).map((el) => ({
+        src: el.dataset.gallerySrc || '',
+        title: el.dataset.galleryTitle || ''
+      }));
+    },
+
+    openAt(event) {
+      if (!this.items.length) this._collectItems();
+      const btn = event.currentTarget;
+      const idx = parseInt(btn.dataset.galleryIndex || '0', 10);
+      this.activeIndex = isNaN(idx) ? 0 : idx;
+      this.isOpen = true;
+      document.body.classList.add('overflow-hidden');
+    },
+
+    close() {
+      this.isOpen = false;
+      document.body.classList.remove('overflow-hidden');
+    },
+
+    next() {
+      if (!this.isOpen || this.items.length < 2) return;
+      this.activeIndex = (this.activeIndex + 1) % this.items.length;
+    },
+
+    prev() {
+      if (!this.isOpen || this.items.length < 2) return;
+      this.activeIndex = (this.activeIndex - 1 + this.items.length) % this.items.length;
+    },
+
+    get hasMultiple() {
+      return this.items.length > 1;
+    },
+
+    get currentSrc() {
+      return this.items[this.activeIndex] ? this.items[this.activeIndex].src : '';
+    },
+
+    get currentTitle() {
+      return this.items[this.activeIndex] ? this.items[this.activeIndex].title : '';
+    },
+
+    get currentAlt() {
+      return this.currentTitle || 'Hotel Coral Heights Gallery';
+    },
+
+    get hasCaption() {
+      return Boolean(this.currentTitle);
+    },
+
+    get counterText() {
+      if (!this.items.length) return '0 / 0';
+      return `${this.activeIndex + 1} / ${this.items.length}`;
+    }
+  }));
+
 });
 
 /* ── Scroll-reveal & Parallax (runs after DOM ready) ─────── */
@@ -1367,27 +1517,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-  // Staggered children reveal
+  // Staggered children reveal — observe every .reveal-child individually so scrolling up from bottom reveals items immediately
   const childObserver = new IntersectionObserver((entries) => {
+    let batchIdx = 0;
     entries.forEach(entry => {
       if (entry.isIntersecting) {
-        const parent = entry.target.parentElement;
-        const children = parent.querySelectorAll('.reveal-child');
-        children.forEach((child, i) => {
-          setTimeout(() => child.classList.add('visible'), i * 120);
-        });
+        const delay = Math.min(batchIdx * 90, 360);
+        batchIdx += 1;
+        setTimeout(() => entry.target.classList.add('visible'), delay);
         childObserver.unobserve(entry.target);
       }
     });
-  }, observerOptions);
+  }, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
 
-  const groups = new Set();
   document.querySelectorAll('.reveal-child').forEach(el => {
-    const parent = el.parentElement;
-    if (!groups.has(parent)) {
-      groups.add(parent);
-      childObserver.observe(el);
-    }
+    childObserver.observe(el);
   });
   
   const parallaxBgElements = document.querySelectorAll('.parallax-bg');

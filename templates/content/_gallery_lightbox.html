@@ -1,0 +1,71 @@
+<!-- Gallery Lightbox Modal (shared between Home & Full Gallery page) -->
+<div
+  x-show="isOpen"
+  x-cloak
+  @keydown.escape.window="close"
+  @keydown.arrow-left.window="prev"
+  @keydown.arrow-right.window="next"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 sm:p-8"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Gallery photo viewer"
+  style="display: none;"
+>
+  <!-- Counter -->
+  <div class="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 px-3.5 py-1.5 rounded-full bg-black/60 text-white text-xs font-semibold tracking-wider border border-white/15">
+    <span x-text="counterText">1 / 1</span>
+  </div>
+
+  <!-- Close Button -->
+  <button
+    type="button"
+    @click="close"
+    aria-label="Close photo viewer"
+    class="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 text-white border border-white/20 flex items-center justify-center transition-colors cursor-pointer"
+  >
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  </button>
+
+  <!-- Previous Button -->
+  <button
+    type="button"
+    x-show="hasMultiple"
+    @click="prev"
+    aria-label="Previous photo"
+    class="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/60 hover:bg-black/80 text-white border border-white/20 flex items-center justify-center transition-colors cursor-pointer"
+  >
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+    </svg>
+  </button>
+
+  <!-- Backdrop click area + Active Image -->
+  <div class="relative z-10 max-w-5xl w-full flex flex-col items-center" @click.outside="close">
+    <img
+      :src="currentSrc"
+      :alt="currentAlt"
+      class="max-h-[82vh] max-w-full w-auto object-contain rounded-none select-none"
+    />
+    <p
+      x-show="hasCaption"
+      x-text="currentTitle"
+      class="mt-4 text-center text-white/90 text-sm sm:text-base max-w-2xl leading-relaxed"
+    ></p>
+  </div>
+
+  <!-- Next Button -->
+  <button
+    type="button"
+    x-show="hasMultiple"
+    @click="next"
+    aria-label="Next photo"
+    class="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/60 hover:bg-black/80 text-white border border-white/20 flex items-center justify-center transition-colors cursor-pointer"
+  >
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+    </svg>
+  </button>
+</div>
+

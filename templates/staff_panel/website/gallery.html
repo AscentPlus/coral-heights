@@ -1,0 +1,156 @@
+{% extends 'staff_panel/base.html' %}
+
+{% block title %}Photo Gallery — Staff Portal{% endblock %}
+{% block header_title %}Photo Gallery{% endblock %}
+
+{% block content %}
+<div class="space-y-8 max-w-7xl mx-auto">
+
+  <!-- Header Breadcrumb & Actions -->
+  <div class="flex items-center justify-between flex-wrap gap-4 border-b border-slate-200 pb-5">
+    <div>
+      <div class="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-1">
+        <a href="{% url 'staff_panel:website' %}" class="hover:text-teal-900 transition-colors">Website Content</a>
+        <span>&rarr;</span>
+        <span class="text-teal-950 font-bold">Photo Gallery</span>
+      </div>
+      <h3 class="font-serif font-bold text-2xl sm:text-3xl text-teal-950">Hotel Photo Gallery</h3>
+    </div>
+
+    <div>
+      {% if edit_photo %}
+        <a href="{% url 'staff_panel:website_gallery' %}" class="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold rounded-xl transition-all inline-flex items-center gap-1.5">
+          &larr; Cancel Editing
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+    <!-- Left: Uploaded Photos Table -->
+    <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6 space-y-4">
+      <div class="flex items-center justify-between">
+        <h4 class="font-serif font-bold text-xl text-teal-950">Uploaded Photos</h4>
+        <div class="flex items-center gap-2">
+          <span class="px-3 py-1 bg-teal-50 text-teal-900 rounded-full text-xs font-bold">{{ home_count }}/{{ home_max }} on Home</span>
+          <span class="px-3 py-1 bg-amber-50 text-amber-800 rounded-full text-xs font-bold">{{ photos|length }} Total</span>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-sm">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+              <th class="py-3 px-3">Photo</th>
+              <th class="py-3 px-3 text-center">Home</th>
+              <th class="py-3 px-3 text-center">Order</th>
+              <th class="py-3 px-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for photo in photos %}
+              <tr class="hover:bg-slate-50/80 transition-colors {% if edit_photo and edit_photo.id == photo.id %}bg-amber-50/50{% endif %}">
+                <td class="py-3.5 px-3">
+                  <div class="flex items-center gap-3">
+                    {% if photo.image %}
+                      <img src="{{ photo.image.url }}" alt="{{ photo.title|default:'Gallery photo' }}" class="w-14 h-12 object-cover rounded-lg border border-slate-200 shadow-xs flex-shrink-0">
+                    {% endif %}
+                    <div>
+                      <p class="font-bold text-slate-900 leading-tight">{{ photo.title|default:"Untitled Photo" }}</p>
+                      <p class="text-[11px] text-slate-500">{% if photo.is_portrait %}Portrait{% else %}Landscape{% endif %}</p>
+                    </div>
+                  </div>
+                </td>
+
+                <td class="py-3.5 px-3 text-center">
+                  {% if photo.show_on_home %}
+                    <span class="px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-xs rounded-full">Yes</span>
+                  {% else %}
+                    <span class="px-2.5 py-1 bg-slate-100 text-slate-500 font-semibold text-xs rounded-full">No</span>
+                  {% endif %}
+                </td>
+
+                <td class="py-3.5 px-3 text-center font-mono text-xs text-slate-600">
+                  {{ photo.display_order }}
+                </td>
+
+                <td class="py-3.5 px-3 text-right">
+                  <div class="flex items-center justify-end gap-2">
+                    <a href="?edit={{ photo.id }}" class="px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-900 text-xs font-bold rounded-lg transition-colors">
+                      Edit
+                    </a>
+                    <form method="post" action="{% url 'staff_panel:website_gallery_delete' photo.id %}" class="inline" onsubmit="return confirm('Delete this gallery photo?');">
+                      {% csrf_token %}
+                      <button type="submit" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg transition-colors">
+                        Delete
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="4" class="py-8 text-center text-slate-400 text-sm">
+                  No gallery photos uploaded yet. Use the form on the right to upload your first photo.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Right: Upload / Edit Photo Form -->
+    <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+      <div class="border-b border-slate-100 pb-3">
+        <h4 class="font-serif font-bold text-xl text-teal-950">
+          {% if edit_photo %}Edit Gallery Photo{% else %}Upload New Photo{% endif %}
+        </h4>
+      </div>
+
+      <form method="post" enctype="multipart/form-data" class="space-y-4">
+        {% csrf_token %}
+        {% if edit_photo %}
+          <input type="hidden" name="action" value="edit">
+          <input type="hidden" name="photo_id" value="{{ edit_photo.id }}">
+        {% else %}
+          <input type="hidden" name="action" value="create">
+        {% endif %}
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Caption</label>
+          {{ form.title }}
+          {% if form.title.errors %}<p class="text-xs text-rose-600 mt-1">{{ form.title.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Image</label>
+          {{ form.image }}
+          {% if form.image.errors %}<p class="text-xs text-rose-600 mt-1">{{ form.image.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 items-center pt-1">
+          <label class="inline-flex items-center gap-2.5 text-xs font-bold text-slate-800 cursor-pointer">
+            {{ form.show_on_home }}
+            <span>Show on Home</span>
+          </label>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Display Order</label>
+            {{ form.display_order }}
+          </div>
+        </div>
+        {% if form.show_on_home.errors %}<p class="text-xs text-rose-600">{{ form.show_on_home.errors.0 }}</p>{% endif %}
+
+        <div class="pt-2">
+          <button type="submit" class="w-full py-3 bg-teal-950 hover:bg-teal-900 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer">
+            {% if edit_photo %}Save Changes{% else %}Upload Photo{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+

@@ -15,7 +15,6 @@
         <span class="text-teal-950 font-bold">Room Categories</span>
       </div>
       <h3 class="font-serif font-bold text-2xl sm:text-3xl text-teal-950">Room &amp; Suite Types</h3>
-      <p class="text-xs text-slate-500 mt-1">Manage room titles, descriptions, pricing, and showcase photos.</p>
     </div>
 
     <div>
@@ -32,7 +31,7 @@
     <!-- Left / Top: Existing Room Types Table -->
     <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6 space-y-4">
       <div class="flex items-center justify-between">
-        <h4 class="font-serif font-bold text-xl text-teal-950">Configured Categories</h4>
+        <h4 class="font-serif font-bold text-xl text-teal-950">Categories</h4>
         <span class="px-3 py-1 bg-teal-50 text-teal-900 rounded-full text-xs font-bold">{{ room_types|length }} Total</span>
       </div>
 
@@ -59,7 +58,7 @@
                     {% endif %}
                     <div>
                       <p class="font-bold text-slate-900 leading-tight">{{ room_type.name }}</p>
-                      <p class="text-[11px] text-slate-500 font-mono">/rooms/#{{ room_type.slug }} &bull; {{ room_type.bed_type }}</p>
+                      <p class="text-[11px] text-slate-500">{{ room_type.bed_type }}</p>
                     </div>
                   </div>
                 </td>
@@ -111,9 +110,6 @@
         <h4 class="font-serif font-bold text-xl text-teal-950">
           {% if edit_room_type %}Edit Room Category{% else %}Add New Room Category{% endif %}
         </h4>
-        <p class="text-xs text-slate-500 mt-0.5">
-          {% if edit_room_type %}Update existing category details and photo.{% else %}Fill in details to add a new room category showcase.{% endif %}
-        </p>
       </div>
 
       <form method="POST" enctype="multipart/form-data" class="space-y-4">
@@ -133,12 +129,6 @@
           <label for="{{ form.name.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Category Name *</label>
           {{ form.name }}
           {% if form.name.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.name.errors.0 }}</p>{% endif %}
-        </div>
-
-        <div>
-          <label for="{{ form.slug.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">URL Slug</label>
-          {{ form.slug }}
-          {% if form.slug.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.slug.errors.0 }}</p>{% endif %}
         </div>
 
         <div class="grid grid-cols-2 gap-4">
@@ -176,14 +166,14 @@
         </div>
 
         <div>
-          <label for="{{ form.long_description.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Long Description (Modal details)</label>
+          <label for="{{ form.long_description.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Detailed Description</label>
           {{ form.long_description }}
           {% if form.long_description.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.long_description.errors.0 }}</p>{% endif %}
         </div>
 
         <!-- Photo Upload Section -->
         <div class="border-t border-slate-100 pt-3 space-y-3">
-          <label for="{{ form.image.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase">Upload Category Photo</label>
+          <label for="{{ form.image.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase">Image</label>
           {{ form.image }}
           {% if form.image.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.image.errors.0 }}</p>{% endif %}
 

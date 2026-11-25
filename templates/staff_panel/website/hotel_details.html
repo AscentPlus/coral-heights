@@ -1,7 +1,7 @@
 {% extends 'staff_panel/base.html' %}
 
-{% block title %}Hotel General Information — Staff Portal{% endblock %}
-{% block header_title %}Hotel General Information{% endblock %}
+{% block title %}Hotel Information — Staff Portal{% endblock %}
+{% block header_title %}Hotel Information{% endblock %}
 
 {% block content %}
 <div class="space-y-6 max-w-7xl mx-auto">
@@ -16,8 +16,7 @@
         <span>&rarr;</span>
         <span class="text-teal-700">Hotel Info</span>
       </div>
-      <h3 class="font-serif font-bold text-2xl sm:text-3xl text-teal-950">Hotel Information &amp; Policies</h3>
-      <p class="text-xs text-slate-500 mt-1">Manage check-in/out times, parking, Wi-Fi, payments, languages, and pet policy used by the website and chatbot.</p>
+      <h3 class="font-serif font-bold text-2xl sm:text-3xl text-teal-950">Hotel Information</h3>
     </div>
   </div>
 
@@ -29,8 +28,7 @@
     <!-- Form Section -->
     <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
       <div>
-        <h4 class="font-serif font-bold text-xl text-teal-950">General Hotel Policies</h4>
-        <p class="text-xs text-slate-500 mt-0.5">Information saved here is referenced directly by the "Hotel Assistant" chatbot to answer guest inquiries accurately.</p>
+        <h4 class="font-serif font-bold text-xl text-teal-950">Hotel Policies</h4>
       </div>
 
       <form method="POST" class="space-y-6">
@@ -113,7 +111,6 @@
           <div>
             <label for="{{ form.rate_note.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Chatbot Rate Note</label>
             {{ form.rate_note }}
-            <p class="text-[11px] text-slate-400 mt-1">Appended whenever the chatbot answers a question about room tariffs.</p>
             {% if form.rate_note.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.rate_note.errors.0 }}</p>{% endif %}
           </div>
 
@@ -126,7 +123,7 @@
 
         <div class="pt-4 border-t border-slate-100 flex justify-end">
           <button type="submit" class="px-8 py-3 bg-gold hover:bg-gold-light text-teal-950 font-bold text-sm rounded-xl transition-all shadow-sm cursor-pointer border-0">
-            Save Hotel Details
+            Save Details
           </button>
         </div>
       </form>
@@ -136,7 +133,6 @@
     <div class="lg:col-span-4 bg-teal-950 rounded-2xl p-6 sm:p-7 text-white space-y-6 shadow-md sticky top-24">
       <div>
         <h4 class="font-serif font-bold text-xl text-white">Live Policy Preview</h4>
-        <p class="text-xs text-slate-300 mt-1">Current data accessed by the website chatbot.</p>
       </div>
 
       <div class="space-y-4 text-xs">

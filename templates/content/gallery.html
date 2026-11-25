@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Photo Gallery — Hotel Coral Heights, Ambalapuzha{% endblock %}
+{% block meta_description %}
+<meta name="description" content="Explore photos of Hotel Coral Heights in Ambalapuzha, Alappuzha — heritage architecture, spacious rooms, dining, and serene surroundings." />
+{% endblock %}
+{% block body_class %}subpage{% endblock %}
+
+{% block content %}
+<main class="pt-24 pb-16 bg-watermark min-h-[70vh]" x-data="galleryLightbox">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <!-- Page Header -->
+    <div class="text-center max-w-2xl mx-auto mb-10 md:mb-12">
+      <h1 class="font-serif text-3xl sm:text-4xl lg:text-5xl text-teal-950 font-bold">Photo Gallery</h1>
+      <div class="w-16 h-0.5 bg-gold mx-auto mt-4"></div>
+    </div>
+
+    {% if gallery_images %}
+      <!-- Masonry Gallery Grid (preserves natural portrait & landscape proportions, sharp borders) -->
+      <div class="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
+        {% for photo in gallery_images %}
+          <button
+            type="button"
+            @click="openAt"
+            data-gallery-index="{{ forloop.counter0 }}"
+            data-gallery-src="{{ photo.image.url }}"
+            data-gallery-title="{{ photo.title|default:'' }}"
+            class="gallery-lightbox-item group block w-full break-inside-avoid overflow-hidden rounded-none focus:outline-none cursor-pointer text-left"
+          >
+            <img
+              src="{{ photo.image.url }}"
+              alt="{{ photo.title|default:'Hotel Coral Heights' }}"
+              class="w-full h-auto block object-cover rounded-none group-hover:scale-[1.02] transition-transform duration-500"
+              loading="lazy"
+            />
+          </button>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center py-16 text-gray-500 text-sm">
+        Gallery photos will be added soon.
+      </div>
+    {% endif %}
+
+  </div>
+
+  {% include 'content/_gallery_lightbox.html' %}
+</main>
+{% endblock %}
+

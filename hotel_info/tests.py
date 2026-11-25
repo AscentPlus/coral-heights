@@ -137,7 +137,6 @@ class HotelInfoStaffViewsTests(TestCase):
             'dinner_hours': '7:00 PM – 10:30 PM',
             'thattukada_hours': '5:00 PM – 9:00 PM',
             'room_service_info': 'Available 24 hours for tea/coffee, meals during dining hours',
-            'extra_notes': 'Vegetarian and Jain meals available on request',
         })
         self.assertRedirects(post_res, url)
 

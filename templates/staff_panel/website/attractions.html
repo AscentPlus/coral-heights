@@ -15,7 +15,6 @@
         <span class="text-teal-950 font-bold">Nearby Attractions</span>
       </div>
       <h3 class="font-serif font-bold text-2xl sm:text-3xl text-teal-950">Local Tourist Attractions</h3>
-      <p class="text-xs text-slate-500 mt-1">Manage local tourist attractions, distance, descriptions and photos.</p>
     </div>
 
     <div>
@@ -32,7 +31,7 @@
     <!-- Left: Existing Attractions Table -->
     <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6 space-y-4">
       <div class="flex items-center justify-between">
-        <h4 class="font-serif font-bold text-xl text-teal-950">Configured Attractions</h4>
+        <h4 class="font-serif font-bold text-xl text-teal-950">Locations</h4>
         <span class="px-3 py-1 bg-amber-50 text-amber-800 rounded-full text-xs font-bold">{{ attractions|length }} Total</span>
       </div>
 
@@ -104,11 +103,8 @@
     <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5 sticky top-24">
       <div>
         <h4 class="font-serif font-bold text-xl text-teal-950">
-          {% if edit_attraction %}Edit Attraction{% else %}Add New Attraction{% endif %}
+          {% if edit_attraction %}Edit Location{% else %}Add New Location{% endif %}
         </h4>
-        <p class="text-xs text-slate-500 mt-0.5">
-          {% if edit_attraction %}Update existing attraction details.{% else %}Add a new nearby tourist spot to showcase.{% endif %}
-        </p>
       </div>
 
       <form method="POST" enctype="multipart/form-data" class="space-y-4">
@@ -125,7 +121,7 @@
         {% endif %}
 
         <div>
-          <label for="{{ form.name.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Attraction Name *</label>
+          <label for="{{ form.name.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Place *</label>
           {{ form.name }}
           {% if form.name.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.name.errors.0 }}</p>{% endif %}
         </div>
@@ -152,7 +148,7 @@
 
         <!-- Photo Upload Section -->
         <div class="border-t border-slate-100 pt-3 space-y-3">
-          <label for="{{ form.image.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase">Upload Attraction Photo</label>
+          <label for="{{ form.image.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase">Image</label>
           {{ form.image }}
           {% if form.image.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.image.errors.0 }}</p>{% endif %}
 

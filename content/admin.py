@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import RoomType, Room, Facility, Attraction, ContactInformation
+from .models import RoomType, Room, Facility, Attraction, ContactInformation, GalleryImage
 
 
 class RoomInline(admin.TabularInline):
@@ -68,3 +68,11 @@ class ContactInformationAdmin(admin.ModelAdmin):
         if self.model.objects.exists():
             return False
         return super().has_add_permission(request)
+
+
+@admin.register(GalleryImage)
+class GalleryImageAdmin(admin.ModelAdmin):
+    list_display = ('__str__', 'show_on_home', 'display_order', 'created_at')
+    list_editable = ('show_on_home', 'display_order')
+    list_filter = ('show_on_home',)
+    ordering = ('display_order', '-created_at')

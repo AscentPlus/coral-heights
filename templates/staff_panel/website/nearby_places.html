@@ -1,7 +1,7 @@
 {% extends 'staff_panel/base.html' %}
 
-{% block title %}Nearby Transport &amp; Essentials — Staff Portal{% endblock %}
-{% block header_title %}Nearby Transport &amp; Essentials{% endblock %}
+{% block title %}Nearby Locations — Staff Portal{% endblock %}
+{% block header_title %}Nearby Locations{% endblock %}
 
 {% block content %}
 <div class="space-y-6 max-w-7xl mx-auto">
@@ -17,7 +17,6 @@
         <span class="text-teal-700">Nearby Places</span>
       </div>
       <h3 class="font-serif font-bold text-2xl sm:text-3xl text-teal-950">Nearby Transport &amp; Essentials</h3>
-      <p class="text-xs text-slate-500 mt-1">Manage essential transport hubs and services (railway station, bus stand, airport, hospitals, ATMs). Tourist attractions remain in Attractions.</p>
     </div>
 
     <div>
@@ -37,7 +36,7 @@
     <!-- Left: Existing Nearby Places Table -->
     <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6 space-y-4">
       <div class="flex items-center justify-between">
-        <h4 class="font-serif font-bold text-xl text-teal-950">Registered Places &amp; Hubs</h4>
+        <h4 class="font-serif font-bold text-xl text-teal-950">Nearby Places</h4>
         <span class="px-3 py-1 bg-emerald-50 text-emerald-800 rounded-full text-xs font-bold">{{ places|length }} Places</span>
       </div>
 
@@ -107,9 +106,6 @@
         <h4 class="font-serif font-bold text-xl text-teal-950">
           {% if edit_place %}Edit Nearby Place{% else %}Add Nearby Place{% endif %}
         </h4>
-        <p class="text-xs text-slate-500 mt-0.5">
-          {% if edit_place %}Update distance, travel time or navigation note.{% else %}Add a transit station, bus stand, airport or essential facility.{% endif %}
-        </p>
       </div>
 
       <form method="POST" class="space-y-4">
@@ -126,13 +122,13 @@
         {% endif %}
 
         <div>
-          <label for="{{ form.place_type.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Place Category *</label>
+          <label for="{{ form.place_type.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Category *</label>
           {{ form.place_type }}
           {% if form.place_type.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.place_type.errors.0 }}</p>{% endif %}
         </div>
 
         <div>
-          <label for="{{ form.name.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Place Name *</label>
+          <label for="{{ form.name.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Name *</label>
           {{ form.name }}
           {% if form.name.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.name.errors.0 }}</p>{% endif %}
         </div>
@@ -152,7 +148,7 @@
         </div>
 
         <div>
-          <label for="{{ form.directions_note.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Directions / Road Note</label>
+          <label for="{{ form.directions_note.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Note</label>
           {{ form.directions_note }}
           {% if form.directions_note.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.directions_note.errors.0 }}</p>{% endif %}
         </div>

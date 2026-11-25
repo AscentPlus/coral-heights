@@ -14,7 +14,6 @@
     <!-- Header Section -->
     <div class="bg-teal-950 rounded-2xl p-8 sm:p-12 text-white shadow-xl relative overflow-hidden mb-12">
       <div class="max-w-2xl relative z-10 space-y-4">
-        <span class="text-gold text-xs font-bold uppercase tracking-widest block">Culinary Experience</span>
         <h1 class="font-serif text-3xl sm:text-5xl font-bold">{{ restaurant_info.name|default:"The Pepper Tree Restaurant" }}</h1>
         <p class="text-white/80 text-sm sm:text-base leading-relaxed">
           {{ restaurant_info.cuisine_description|default:"Authentic Kerala cuisine, coastal delicacies, traditional evening Thattukada specialties, and North Indian favorites prepared fresh daily." }}
@@ -107,14 +106,6 @@
           <p class="text-gray-500 text-sm">Menu details are being curated. Please contact our restaurant desk directly for today's specials.</p>
         </div>
       {% endif %}      
-    </div>
-
-    <!-- Dietary & Food Allergy Note -->
-    <div class="mt-12 bg-cream/50 rounded-2xl p-6 border border-teal-900/10 text-center max-w-2xl mx-auto">
-      <h4 class="font-serif font-bold text-base text-teal-950 mb-1">Dietary &amp; Food Allergy Note</h4>
-      <p class="text-xs text-gray-600 leading-relaxed">
-        {{ restaurant_info.extra_notes|default:"Please inform our staff of any dietary requirements, allergies, or special food preferences prior to ordering. Jain, gluten-free, and custom preparations are available upon advance request." }}
-      </p>
     </div>
   </div>
 </main>

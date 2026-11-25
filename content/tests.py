@@ -134,7 +134,6 @@ class ShareableDetailPagesTestCase(TestCase):
         self.assertIn("7:30 AM – 10:00 AM", content)
         self.assertIn("Karimeen Pollichathu", content)
         self.assertIn("₹450", content)
-        self.assertIn("Dietary &amp; Food Allergy Note", content)
 
     def test_events_navigation_and_redirect(self):
         """Events in navbar links directly to home event section, and /events/ redirects there."""
@@ -252,6 +251,90 @@ class UnusedImageCleanupTestCase(TestCase):
         self.assertTrue(os.path.exists(att_path_2))
         att.delete()
         self.assertFalse(os.path.exists(att_path_2))
+
+
+class GalleryFeatureTestCase(TestCase):
+    """Tests for the About section, Gallery homepage cap (7), /gallery/ page, and GalleryImage cleanup."""
+
+    @classmethod
+    def setUpClass(cls):
+        import shutil
+        import tempfile
+        from django.test import override_settings
+
+        super().setUpClass()
+        cls._temp_media = tempfile.mkdtemp()
+        cls._media_override = override_settings(MEDIA_ROOT=cls._temp_media)
+        cls._media_override.enable()
+
+        def _cleanup():
+            cls._media_override.disable()
+            shutil.rmtree(cls._temp_media, ignore_errors=True)
+
+        cls.addClassCleanup(_cleanup)
+
+    def _make_image(self, name, size=(120, 80)):
+        from io import BytesIO
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        buf = BytesIO()
+        Image.new('RGB', size, color='teal').save(buf, 'jpeg')
+        buf.seek(0)
+        return SimpleUploadedFile(name, buf.read(), content_type='image/jpeg')
+
+    def test_about_and_gallery_sections_and_home_cap(self):
+        from content.models import GalleryImage, HOME_GALLERY_MAX
+        from staff_panel.forms import GalleryImageForm
+
+        # Create 8 gallery images; 7 featured on home, 8th not featured
+        for i in range(HOME_GALLERY_MAX):
+            size = (80, 120) if i == 4 else (120, 80)
+            GalleryImage.objects.create(
+                title=f"Photo {i + 1}",
+                image=self._make_image(f"gal_{i + 1}.jpg", size=size),
+                show_on_home=True,
+                display_order=i + 1,
+            )
+
+        extra = GalleryImage.objects.create(
+            title="Photo 8",
+            image=self._make_image("gal_8.jpg"),
+            show_on_home=False,
+            display_order=8,
+        )
+
+        # Form should reject an 8th show_on_home=True image
+        form = GalleryImageForm(
+            data={'title': 'Overflow', 'show_on_home': True, 'display_order': 9},
+            files={'image': self._make_image('gal_9.jpg')},
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn('show_on_home', form.errors)
+
+        # Home page renders About section + max 7 gallery images + View Full Gallery button
+        home_resp = self.client.get('/')
+        self.assertEqual(home_resp.status_code, 200)
+        home_html = home_resp.content.decode()
+        self.assertIn('id="about"', home_html)
+        self.assertIn('id="gallery"', home_html)
+        self.assertIn('/gallery/', home_html)
+        self.assertIn('Photo 7', home_html)
+        self.assertNotIn('Photo 8', home_html)
+
+        # Full gallery page renders all 8 images
+        gal_resp = self.client.get('/gallery/')
+        self.assertEqual(gal_resp.status_code, 200)
+        gal_html = gal_resp.content.decode()
+        self.assertIn('Photo 1', gal_html)
+        self.assertIn('Photo 8', gal_html)
+
+        # Deleting a gallery image deletes its file from disk
+        import os
+        extra_path = extra.image.path
+        self.assertTrue(os.path.exists(extra_path))
+        extra.delete()
+        self.assertFalse(os.path.exists(extra_path))
 
 
 

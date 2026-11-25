@@ -16,8 +16,7 @@
         <span>&rarr;</span>
         <span class="text-teal-700">Restaurant Info</span>
       </div>
-      <h3 class="font-serif font-bold text-2xl sm:text-3xl text-teal-950">Restaurant &amp; Dining Timings</h3>
-      <p class="text-xs text-slate-500 mt-1">Manage restaurant name, cuisine description, breakfast/lunch/dinner hours, thattukada, and room service info.</p>
+      <h3 class="font-serif font-bold text-2xl sm:text-3xl text-teal-950">Restaurant Timings</h3>
     </div>
   </div>
 
@@ -30,7 +29,6 @@
     <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
       <div>
         <h4 class="font-serif font-bold text-xl text-teal-950">Dining Timings &amp; Service Details</h4>
-        <p class="text-xs text-slate-500 mt-0.5">Keep restaurant operational hours updated so guests get immediate, accurate answers from the chatbot.</p>
       </div>
 
       <form method="POST" class="space-y-6">
@@ -44,7 +42,6 @@
 
         <!-- Name & Cuisine -->
         <div class="space-y-4 border-b border-slate-100 pb-6">
-          <h5 class="text-xs font-bold text-teal-950 uppercase tracking-wider">Restaurant Profile</h5>
 
           <div>
             <label for="{{ form.name.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Restaurant Name</label>
@@ -85,33 +82,22 @@
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label for="{{ form.thattukada_hours.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Evening / Thattukada Hours</label>
+              <label for="{{ form.thattukada_hours.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Thattukada Hours</label>
               {{ form.thattukada_hours }}
               {% if form.thattukada_hours.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.thattukada_hours.errors.0 }}</p>{% endif %}
             </div>
 
             <div>
-              <label for="{{ form.room_service_info.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Room Service Timings &amp; Notes</label>
+              <label for="{{ form.room_service_info.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Room Service Timings</label>
               {{ form.room_service_info }}
               {% if form.room_service_info.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.room_service_info.errors.0 }}</p>{% endif %}
             </div>
           </div>
         </div>
 
-        <!-- Extra Dining Notes -->
-        <div class="space-y-4 pb-2">
-          <h5 class="text-xs font-bold text-teal-950 uppercase tracking-wider">Dining Policies &amp; Dietary Notes</h5>
-
-          <div>
-            <label for="{{ form.extra_notes.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Extra Notes</label>
-            {{ form.extra_notes }}
-            {% if form.extra_notes.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.extra_notes.errors.0 }}</p>{% endif %}
-          </div>
-        </div>
-
         <div class="pt-4 border-t border-slate-100 flex justify-end">
           <button type="submit" class="px-8 py-3 bg-gold hover:bg-gold-light text-teal-950 font-bold text-sm rounded-xl transition-all shadow-sm cursor-pointer border-0">
-            Save Restaurant Details
+            Save Details
           </button>
         </div>
       </form>
@@ -121,7 +107,6 @@
     <div class="lg:col-span-4 bg-teal-950 rounded-2xl p-6 sm:p-7 text-white space-y-6 shadow-md sticky top-24">
       <div>
         <h4 class="font-serif font-bold text-xl text-white">Live Restaurant Preview</h4>
-        <p class="text-xs text-slate-300 mt-1">Current restaurant timings known to the chatbot.</p>
       </div>
 
       <div class="space-y-4 text-xs">

@@ -691,10 +691,7 @@ def _format_restaurant_answer(normalized_query: str) -> Dict[str, Any]:
             ]
             if restaurant_info.cuisine_description:
                 lines.append(f"Our restaurant serves {restaurant_info.cuisine_description}.")
-            if restaurant_info.extra_notes:
-                lines.append(f"Note: {restaurant_info.extra_notes}")
-            else:
-                lines.append("Special dishes can often be prepared on prior request.")
+            lines.append("Special dishes can often be prepared on prior request.")
             lines.append(f"Please contact our restaurant at {contact.primary_phone} to inquire about today's preparation.")
             return {
                 "answer": "\n".join(lines).strip(),
@@ -799,8 +796,6 @@ def _format_restaurant_answer(normalized_query: str) -> Dict[str, Any]:
         ]
         if restaurant_info.cuisine_description:
             lines.append(f"Our restaurant serves {restaurant_info.cuisine_description}.")
-        if restaurant_info.extra_notes:
-            lines.append(f"Note: {restaurant_info.extra_notes}")
         lines.append(f"Please contact our restaurant at {contact.primary_phone} to check if this can be prepared for you.")
         return {
             "answer": "\n".join(lines).strip(),
@@ -851,9 +846,6 @@ def _format_restaurant_answer(normalized_query: str) -> Dict[str, Any]:
     if categories:
         cat_names = ", ".join([c.name for c in categories])
         lines.append(f"\nMenu Categories: {cat_names}. Ask about any dish to check prices!")
-
-    if restaurant_info.extra_notes:
-        lines.append(f"\nNote: {restaurant_info.extra_notes}")
 
     return {
         "answer": "\n".join(lines).strip(),

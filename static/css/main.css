@@ -152,7 +152,7 @@ body.overflow-hidden {
 
 /* ── Navbar State Transitions (Hero Transparent vs Solid Floating Notch) ── */
 
-nav {
+nav[aria-label="Main navigation"] {
   position: fixed;
   top: 0;
   left: 0;
@@ -195,13 +195,16 @@ body:not(.subpage) nav:not(.nav-solid) .nav-notch {
   body:not(.subpage) nav:not(.nav-solid) .nav-notch {
     height: 5rem !important; /* h-20 on desktop */
   }
+  body:not(.subpage) nav:not(.nav-solid) .nav-brand img {
+    height: 3.25rem !important; /* slightly larger logo on desktop first load */
+  }
 }
 
-/* Hero transparent state text & logo (fixed consistent size in all states) */
+/* Hero transparent state text & logo */
 body:not(.subpage) nav:not(.nav-solid) .nav-brand img {
   filter: brightness(0) invert(1) !important;
   transition: none !important;
-  height: 2.5rem !important; /* 40px / h-10 */
+  height: 2.5rem; /* 40px / h-10 on mobile/smaller views */
 }
 body:not(.subpage) nav:not(.nav-solid) .nav-link-item {
   color: rgba(255, 255, 255, 0.9) !important;
@@ -227,31 +230,46 @@ body:not(.subpage) nav:not(.nav-solid) .nav-btn-book {
   transition: background-color 0.2s ease !important;
 }
 
-/* ── Mobile Solid State (< 1024px) ── */
+/* ── Mobile & Tablet Floating Notch Solid State (< 1024px) ── */
 @media (max-width: 1023px) {
   nav.nav-solid,
   body.subpage nav {
-    background: rgba(255, 255, 255, 0.98) !important;
-    box-shadow: 0 4px 30px rgba(10, 46, 46, 0.12);
-    backdrop-filter: blur(12px);
+    top: 0.75rem !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    pointer-events: none;
+    transition: none !important;
+  }
+  nav.nav-solid .nav-container,
+  body.subpage nav .nav-container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    pointer-events: auto;
     transition: none !important;
   }
   nav.nav-solid .nav-notch,
   body.subpage nav .nav-notch {
-    height: 4rem !important; /* 64px / h-16 */
+    height: 3.75rem !important; /* 60px */
+    padding-left: 1.25rem !important;
+    padding-right: 1rem !important;
+    background: rgba(255, 255, 255, 0.98) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(200, 164, 94, 0.35) !important;
+    box-shadow: 0 12px 36px -4px rgba(10, 46, 46, 0.16) !important;
+    border-radius: 9999px !important;
+    transition: none !important;
   }
   nav.nav-solid .nav-brand img,
   body.subpage nav .nav-brand img {
     filter: none !important;
-    height: 2.5rem !important; /* 40px / h-10 */
+    height: 2.25rem !important; /* 36px inside compact pill */
     transition: none !important;
   }
   nav.nav-solid .nav-hamburger,
   body.subpage nav .nav-hamburger {
     color: #0a2e2e !important;
-  }
-  body.subpage nav {
-    border-bottom: 1px solid rgba(200, 164, 94, 0.25) !important;
   }
   body.subpage nav .nav-link-item {
     color: #0a2e2e !important;
@@ -622,6 +640,47 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     flex-direction: column !important;
     gap: 0.75rem !important;
   }
+}
+
+/* ── Distance-Based Attractions Timeline ───────────────────── */
+.timeline-track {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.timeline-track::-webkit-scrollbar {
+  display: none;
+}
+
+.timeline-h-item {
+  flex: 0 0 280px;
+}
+
+.timeline-h-slot {
+  height: 345px;
+}
+
+.timeline-h-axis::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  background: rgba(200, 164, 94, 0.75);
+  transform: translateY(-50%);
+  z-index: 0;
+}
+
+.timeline-v-list::before {
+  content: '';
+  position: absolute;
+  top: 1rem;
+  bottom: 1rem;
+  left: 2.5rem; /* center of w-20 (5rem) location tag */
+  width: 2px;
+  background: rgba(200, 164, 94, 0.75);
+  transform: translateX(-50%);
+  z-index: 0;
 }
 
 

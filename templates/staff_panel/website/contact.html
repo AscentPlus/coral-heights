@@ -15,7 +15,6 @@
         <span class="text-teal-950 font-bold">Contact &amp; Social</span>
       </div>
       <h3 class="font-serif font-bold text-2xl sm:text-3xl text-teal-950">Hotel Contact Settings</h3>
-      <p class="text-xs text-slate-500 mt-1">Manage Contact Info, Email, WhatsApp, Address, and Social Media Profile URLs.</p>
     </div>
   </div>
 
@@ -24,8 +23,7 @@
     <!-- Form Section -->
     <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
       <div>
-        <h4 class="font-serif font-bold text-xl text-teal-950">Site-wide Contact Information</h4>
-        <p class="text-xs text-slate-500 mt-0.5">Changes saved here immediately update the website topbar, footer, contact page, and WhatsApp floating widget.</p>
+        <h4 class="font-serif font-bold text-xl text-teal-950">Contact Information</h4>
       </div>
 
       <form method="POST" class="space-y-6">
@@ -43,7 +41,7 @@
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label for="{{ form.primary_phone.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Primary Mobile *</label>
+              <label for="{{ form.primary_phone.id_for_label }}" class="block text-xs font-bold text-slate-700 uppercase mb-1">Primary Number *</label>
               {{ form.primary_phone }}
               {% if form.primary_phone.errors %}<p class="text-xs text-rose-600 font-semibold mt-1">{{ form.primary_phone.errors.0 }}</p>{% endif %}
             </div>
@@ -132,12 +130,11 @@
     <div class="lg:col-span-4 bg-teal-950 rounded-2xl p-6 sm:p-7 text-white space-y-6 shadow-md sticky top-24">
       <div>        
         <h4 class="font-serif font-bold text-xl text-white">Live Site Preview</h4>
-        <p class="text-xs text-slate-300 mt-1">Current details displayed across the website pages.</p>
       </div>
 
       <div class="space-y-4 text-xs">
         <div class="p-3 bg-white/5 rounded-xl space-y-1">
-          <span class="text-slate-400 font-semibold block uppercase tracking-wider text-[10px]">Primary Phone</span>
+          <span class="text-slate-400 font-semibold block uppercase tracking-wider text-[10px]">Primary Number</span>
           <p class="font-bold text-gold text-sm">{{ contact.primary_phone }}</p>
         </div>
 

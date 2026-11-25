@@ -3,7 +3,7 @@
 from django.db.models.signals import post_delete, pre_save
 from django.dispatch import receiver
 
-from .models import Attraction, RoomType
+from .models import Attraction, GalleryImage, RoomType
 
 
 def _delete_unused_image(model_class, file_field, exclude_pk=None):
@@ -24,6 +24,7 @@ def _delete_unused_image(model_class, file_field, exclude_pk=None):
 
 @receiver(pre_save, sender=RoomType)
 @receiver(pre_save, sender=Attraction)
+@receiver(pre_save, sender=GalleryImage)
 def delete_replaced_image_on_save(sender, instance, **kwargs):
     """Remove the previous image file when a RoomType or Attraction image is replaced or cleared."""
     if not instance.pk:
@@ -42,6 +43,7 @@ def delete_replaced_image_on_save(sender, instance, **kwargs):
 
 @receiver(post_delete, sender=RoomType)
 @receiver(post_delete, sender=Attraction)
+@receiver(post_delete, sender=GalleryImage)
 def delete_image_on_delete(sender, instance, **kwargs):
     """Remove the image file from storage when a RoomType or Attraction is deleted."""
     if instance.image:

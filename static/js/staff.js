@@ -1,4 +1,42 @@
 document.addEventListener('alpine:init', function () {
+  Alpine.data('staffLayout', function () {
+    return {
+      isDesktop: window.innerWidth >= 1024,
+      sidebarOpen: window.innerWidth >= 1024,
+
+      init: function () {
+        var self = this;
+        window.addEventListener('resize', function () {
+          var nowDesktop = window.innerWidth >= 1024;
+          if (nowDesktop !== self.isDesktop) {
+            self.isDesktop = nowDesktop;
+            self.sidebarOpen = nowDesktop;
+          }
+        });
+      },
+
+      toggleSidebar: function () {
+        this.sidebarOpen = !this.sidebarOpen;
+      },
+
+      closeSidebar: function () {
+        this.sidebarOpen = false;
+      },
+
+      get asideClasses() {
+        return this.sidebarOpen ? 'translate-x-0' : '-translate-x-full';
+      },
+
+      get mainClasses() {
+        return (this.isDesktop && this.sidebarOpen) ? 'lg:pl-64' : 'pl-0';
+      },
+
+      get showBackdrop() {
+        return !this.isDesktop && this.sidebarOpen;
+      }
+    };
+  });
+
   Alpine.data('reportsPage', function () {
     return {
       printReport: function () {
