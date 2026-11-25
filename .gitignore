@@ -14,18 +14,29 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+# Databases & logs
 db.sqlite3
 db.sqlite3-journal
+*.sqlite3
+*.sqlite3-*
 *.log
+logs/
+
+# Media uploads & collected static files
+media/
 staticfiles/
+
+# Server runtime artifacts
+*.sock
+*.pid
 .coverage
 htmlcov/
 .pytest_cache/
 
 # Environment files & secret credentials
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # Node / Frontend dependencies
 node_modules/

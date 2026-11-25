@@ -999,6 +999,23 @@ class StaffReportsTests(TestCase):
 class StaffWebsiteContentTests(TestCase):
     """Tests for staff panel website content management."""
 
+    @classmethod
+    def setUpClass(cls):
+        import shutil
+        import tempfile
+        from django.test import override_settings
+
+        super().setUpClass()
+        cls._temp_media = tempfile.mkdtemp()
+        cls._media_override = override_settings(MEDIA_ROOT=cls._temp_media)
+        cls._media_override.enable()
+
+        def _cleanup():
+            cls._media_override.disable()
+            shutil.rmtree(cls._temp_media, ignore_errors=True)
+
+        cls.addClassCleanup(_cleanup)
+
     def setUp(self):
         self.client = Client()
         from content.models import RoomType, Facility, Attraction, ContactInformation

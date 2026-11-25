@@ -102,7 +102,7 @@ class Booking(models.Model):
             return f"Expires in {minutes} min"
         # Format as a clock time if more than an hour away
         local_expiry = timezone.localtime(self.hold_expires_at)
-        return f"Held until {local_expiry.strftime('%-I:%M %p')}"
+        return f"Held until {local_expiry.strftime('%I:%M %p').lstrip('0')}"
 
     def __str__(self):
         return f"Booking #{self.id} — Room {self.room.room_number} ({self.guest.name})"

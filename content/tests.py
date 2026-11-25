@@ -172,3 +172,86 @@ class ShareableDetailPagesTestCase(TestCase):
         self.assertIn('/location/', content)
 
 
+class UnusedImageCleanupTestCase(TestCase):
+    """Tests that replaced, cleared, or deleted model images are removed from disk."""
+
+    @classmethod
+    def setUpClass(cls):
+        import shutil
+        import tempfile
+        from django.test import override_settings
+
+        super().setUpClass()
+        cls._temp_media = tempfile.mkdtemp()
+        cls._media_override = override_settings(MEDIA_ROOT=cls._temp_media)
+        cls._media_override.enable()
+
+        def _cleanup():
+            cls._media_override.disable()
+            shutil.rmtree(cls._temp_media, ignore_errors=True)
+
+        cls.addClassCleanup(_cleanup)
+
+    def _make_image(self, name):
+        from io import BytesIO
+        from PIL import Image
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        buf = BytesIO()
+        Image.new('RGB', (40, 40), color='navy').save(buf, 'jpeg')
+        buf.seek(0)
+        return SimpleUploadedFile(name, buf.read(), content_type='image/jpeg')
+
+    def test_room_type_image_cleanup_on_replace_clear_and_delete(self):
+        import os
+        from content.models import RoomType
+
+        rt = RoomType.objects.create(
+            name='Cleanup Suite',
+            slug='cleanup-suite',
+            base_price_per_night=5000,
+            short_description='Test room',
+            image=self._make_image('first.jpg'),
+        )
+        first_path = rt.image.path
+        self.assertTrue(os.path.exists(first_path))
+
+        # Replace image -> first file should be deleted
+        rt.image = self._make_image('second.jpg')
+        rt.save()
+        second_path = rt.image.path
+        self.assertFalse(os.path.exists(first_path))
+        self.assertTrue(os.path.exists(second_path))
+
+        # Delete model -> second file should be deleted
+        rt.delete()
+        self.assertFalse(os.path.exists(second_path))
+
+    def test_attraction_image_cleanup_on_clear_and_delete(self):
+        import os
+        from content.models import Attraction
+
+        att = Attraction.objects.create(
+            name='Cleanup Beach',
+            description='Test attraction',
+            distance_label='2 km',
+            image=self._make_image('att1.jpg'),
+        )
+        att_path = att.image.path
+        self.assertTrue(os.path.exists(att_path))
+
+        # Clear image -> file should be deleted
+        att.image = ''
+        att.save()
+        self.assertFalse(os.path.exists(att_path))
+
+        # Assign new image and delete attraction -> file should be deleted
+        att.image = self._make_image('att2.jpg')
+        att.save()
+        att_path_2 = att.image.path
+        self.assertTrue(os.path.exists(att_path_2))
+        att.delete()
+        self.assertFalse(os.path.exists(att_path_2))
+
+
+

@@ -112,53 +112,6 @@ document.addEventListener('alpine:init', () => {
     }
   }));
 
-  // Shared Alpine store for room details modal
-  Alpine.store('roomDetails', {
-    open: false,
-    activeSlug: '',
-
-    openRoom(slug) {
-      this.activeSlug = slug;
-      this.open = true;
-      document.body.classList.add('overflow-hidden');
-    },
-
-    closeModal() {
-      this.open = false;
-      this.activeSlug = '';
-      document.body.classList.remove('overflow-hidden');
-    }
-  });
-
-  // CSP-safe bridge component for room cards
-  Alpine.data('roomCard', () => ({
-    openDetails() {
-      const card = this.$el.closest('[data-room-slug]');
-      const slug = card ? card.dataset.roomSlug : '';
-      if (slug) {
-        Alpine.store('roomDetails').openRoom(slug);
-      }
-    }
-  }));
-
-  // CSP-safe modal container component for room details
-  Alpine.data('roomDetailsModal', () => ({
-    get isOpen() {
-      return Alpine.store('roomDetails').open;
-    },
-    closeModal() {
-      Alpine.store('roomDetails').closeModal();
-    }
-  }));
-
-  // CSP-safe item component for each room in details modal
-  Alpine.data('roomDetailsItem', () => ({
-    get isActive() {
-      const slug = this.$el.dataset.roomDetailsSlug;
-      return Alpine.store('roomDetails').open && Alpine.store('roomDetails').activeSlug === slug;
-    }
-  }));
-
   // Check-availability widget with stepper controls & real API integration
   Alpine.data('availabilityWidget', () => ({
     checkin: '',
