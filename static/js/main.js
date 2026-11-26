@@ -24,7 +24,7 @@ document.addEventListener('alpine:init', () => {
     return str;
   }
 
-  // Mobile-only fullscreen portrait intro video overlay
+  // Mobile-only fullscreen portrait intro overlay
   Alpine.data('mobileIntroVideo', () => ({
     fading: false,
     dismissed: false,
@@ -50,23 +50,6 @@ document.addEventListener('alpine:init', () => {
       }
 
       document.body.classList.add('mobile-intro-lock');
-
-      const video = this.$refs.introVideo;
-      if (!video) return;
-
-      video.muted = true;
-
-      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const saveData = !!(navigator.connection && navigator.connection.saveData);
-      if (prefersReducedMotion || saveData) {
-        video.pause();
-        return;
-      }
-
-      const playPromise = video.play();
-      if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch(() => {});
-      }
     },
 
     get overlayClasses() {
@@ -78,9 +61,6 @@ document.addEventListener('alpine:init', () => {
     dismissImmediate() {
       this.dismissed = true;
       document.body.classList.remove('mobile-intro-lock');
-      if (this.$refs.introVideo) {
-        this.$refs.introVideo.pause();
-      }
     },
 
     dismiss() {
@@ -90,9 +70,6 @@ document.addEventListener('alpine:init', () => {
 
       window.setTimeout(() => {
         this.dismissed = true;
-        if (this.$refs.introVideo) {
-          this.$refs.introVideo.pause();
-        }
       }, 350);
     }
   }));

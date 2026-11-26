@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block content %}
-  <!-- Mobile-Only Fullscreen Portrait Intro Video (shown on initial load; click/tap to enter home page) -->
+  <!-- Mobile-Only Fullscreen Portrait Intro Image (shown on initial load; click/tap to enter home page) -->
   <div
     id="mobile-intro-overlay"
     x-data="mobileIntroVideo"
@@ -15,24 +15,14 @@
     aria-label="Tap anywhere to open Hotel Coral Heights home page"
     class="mobile-intro-overlay"
   >
-    <!-- To use a dedicated portrait video, replace 'video/hero.mp4' with your portrait video path -->
-    <video
-      x-ref="introVideo"
-      class="mobile-intro-video"
-      autoplay
-      muted
-      loop
-      playsinline
-      preload="auto"
-      poster="{% static 'images/hero-poster.jpg' %}"
-      disablepictureinpicture
-      disableremoteplayback
-      controlslist="nodownload noremoteplayback"
+    <img
+      src="{% static 'images/mobile-intro.jpg' %}"
+      alt=""
       aria-hidden="true"
-      tabindex="-1"
-    >
-      <source src="{% static 'video/hero.mp4' %}" type="video/mp4">
-    </video>
+      loading="eager"
+      decoding="async"
+      class="mobile-intro-image"
+    />
 
     <div class="mobile-intro-hint pointer-events-none" aria-hidden="true">
       <span class="mobile-intro-hint-pill">Tap anywhere to continue</span>
