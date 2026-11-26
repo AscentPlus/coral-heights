@@ -111,44 +111,12 @@ body.overflow-hidden {
 
 /* ── Parallax ────────────────────────────────────────────── */
 
-.parallax-window {
-  position: relative;
-  overflow: hidden;
-}
-.parallax-bg {
-  position: absolute;
-  top: -20%;
-  left: 0;
-  width: 100%;
-  height: 140%;
-  object-fit: cover;
-  will-change: transform;
-  pointer-events: none;
-}
-
 .parallax-fixed {
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
   background-attachment: fixed;
 }
-
-/* ── Horizontal scroll row ───────────────────────────────── */
-
-.scroll-row {
-  display: flex;
-  gap: 1.25rem;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 1rem;
-  scrollbar-width: thin;
-  scrollbar-color: #c8a45e transparent;
-}
-.scroll-row::-webkit-scrollbar { height: 6px; }
-.scroll-row::-webkit-scrollbar-track { background: transparent; }
-.scroll-row::-webkit-scrollbar-thumb { background: #c8a45e; border-radius: 99px; }
-.scroll-row > * { scroll-snap-align: start; flex: 0 0 auto; }
 
 /* ── Navbar State Transitions (Hero Transparent vs Solid Floating Notch) ── */
 
@@ -481,14 +449,6 @@ body:not(.subpage) nav:not(.nav-solid) .nav-btn-book {
   border-color: #c8a45e;
 }
 
-.attraction-card {
-  transition: transform .3s ease, box-shadow .3s ease;
-}
-.attraction-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(10,46,46,.10);
-}
-
 /* ── WhatsApp pulse ───────────────────────────────────── */
 @keyframes wa-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(37,211,102,.5); }
@@ -656,31 +616,205 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .timeline-h-slot {
-  height: 345px;
+  height: 330px;
 }
 
+/* Desktop Horizontal Asphalt Road */
+.timeline-h-axis {
+  height: 76px;
+  background: linear-gradient(180deg, #3c3f44 0%, #2c2f33 50%, #373a3f 100%);
+}
 .timeline-h-axis::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 5px;
+  bottom: 5px;
+  border-top: 2px solid rgba(255, 255, 255, 0.85);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+  z-index: 0;
+}
+.timeline-h-axis::after {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
   top: 50%;
   height: 2px;
-  background: rgba(200, 164, 94, 0.75);
+  background: repeating-linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.9) 0 22px,
+    transparent 22px 44px
+  );
   transform: translateY(-50%);
+  pointer-events: none;
   z-index: 0;
 }
 
+/* Mobile Vertical Asphalt Road */
 .timeline-v-list::before {
   content: '';
   position: absolute;
-  top: 1rem;
-  bottom: 1rem;
-  left: 2.5rem; /* center of w-20 (5rem) location tag */
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 68px;
+  background: linear-gradient(90deg, #3c3f44 0%, #2c2f33 50%, #373a3f 100%);
+  box-shadow:
+    inset 4px 0 0 #2c2f33,
+    inset 6px 0 0 rgba(255, 255, 255, 0.85),
+    inset -4px 0 0 #2c2f33,
+    inset -6px 0 0 rgba(255, 255, 255, 0.85);
+  z-index: 0;
+}
+.timeline-v-list::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 34px;
   width: 2px;
-  background: rgba(200, 164, 94, 0.75);
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.9) 0 18px,
+    transparent 18px 36px
+  );
   transform: translateX(-50%);
   z-index: 0;
+}
+
+/* 3D Yellow & White Milestone / Kilometer Stone */
+.milestone-stone {
+  position: relative;
+  z-index: 10;
+  display: inline-flex;
+  flex-direction: column;
+  min-width: 64px;
+  border-radius: 22px 22px 4px 4px;
+  overflow: hidden;
+  box-shadow: 4px 3px 0 #9ca3af, 0 6px 14px rgba(0, 0, 0, 0.4);
+}
+.milestone-stone--mobile {
+  min-width: 52px;
+  border-radius: 18px 18px 4px 4px;
+}
+.milestone-cap {
+  height: 22px;
+  background: linear-gradient(135deg, #fbbf24 0%, #eab308 65%, #ca8a04 100%);
+}
+.milestone-stone--mobile .milestone-cap {
+  height: 18px;
+}
+.milestone-body {
+  background: linear-gradient(135deg, #ffffff 0%, #f3f4f6 78%, #d1d5db 100%);
+  color: #111827;
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1.1;
+  padding: 6px 10px 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+.milestone-stone--mobile .milestone-body {
+  font-size: 11px;
+  padding: 5px 6px 6px;
+}
+
+/* ── About Section Soft Cream Fade ───────────────────────── */
+.about-fade-overlay {
+  background: linear-gradient(
+    to right,
+    #faf7f2 0%,
+    rgba(250, 247, 242, 0.94) 14%,
+    rgba(250, 247, 242, 0.68) 32%,
+    rgba(250, 247, 242, 0.22) 52%,
+    rgba(250, 247, 242, 0) 70%
+  );
+}
+
+.about-fade-top {
+  background: linear-gradient(
+    to bottom,
+    #faf7f2 0%,
+    rgba(250, 247, 242, 0.65) 45%,
+    rgba(250, 247, 242, 0) 100%
+  );
+}
+
+/* ── Mobile-Only Fullscreen Portrait Intro Video ───────────── */
+.mobile-intro-overlay {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .mobile-intro-overlay {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 9999;
+    background-color: #000000;
+    cursor: pointer;
+    overflow: hidden;
+    opacity: 1;
+    transition: opacity 0.35s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-intro-overlay.is-fading {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .mobile-intro-overlay.is-dismissed {
+    display: none !important;
+  }
+
+  .mobile-intro-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .mobile-intro-hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 3rem 1.5rem calc(2rem + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    justify-content: center;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.65) 0%,
+      rgba(0, 0, 0, 0.25) 60%,
+      rgba(0, 0, 0, 0) 100%
+    );
+  }
+
+  .mobile-intro-hint-pill {
+    padding: 0.5rem 1.125rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(6px);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  body.mobile-intro-lock {
+    overflow: hidden !important;
+    height: 100vh;
+    height: 100dvh;
+  }
 }
 
 

@@ -5,6 +5,7 @@
   @keydown.escape.window="close"
   @keydown.arrow-left.window="prev"
   @keydown.arrow-right.window="next"
+  @click.self="close"
   class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 sm:p-8"
   role="dialog"
   aria-modal="true"
@@ -42,7 +43,7 @@
   </button>
 
   <!-- Backdrop click area + Active Image -->
-  <div class="relative z-10 max-w-5xl w-full flex flex-col items-center" @click.outside="close">
+  <div class="relative z-10 max-w-5xl w-full flex flex-col items-center" @click.self="close">
     <img
       :src="currentSrc"
       :alt="currentAlt"

@@ -2,6 +2,43 @@
 {% load static %}
 
 {% block content %}
+  <!-- Mobile-Only Fullscreen Portrait Intro Video (shown on initial load; click/tap to enter home page) -->
+  <div
+    id="mobile-intro-overlay"
+    x-data="mobileIntroVideo"
+    :class="overlayClasses"
+    @click="dismiss"
+    @keydown.enter="dismiss"
+    @keydown.space.prevent="dismiss"
+    role="button"
+    tabindex="0"
+    aria-label="Tap anywhere to open Hotel Coral Heights home page"
+    class="mobile-intro-overlay"
+  >
+    <!-- To use a dedicated portrait video, replace 'video/hero.mp4' with your portrait video path -->
+    <video
+      x-ref="introVideo"
+      class="mobile-intro-video"
+      autoplay
+      muted
+      loop
+      playsinline
+      preload="auto"
+      poster="{% static 'images/hero-poster.jpg' %}"
+      disablepictureinpicture
+      disableremoteplayback
+      controlslist="nodownload noremoteplayback"
+      aria-hidden="true"
+      tabindex="-1"
+    >
+      <source src="{% static 'video/hero.mp4' %}" type="video/mp4">
+    </video>
+
+    <div class="mobile-intro-hint pointer-events-none" aria-hidden="true">
+      <span class="mobile-intro-hint-pill">Tap anywhere to continue</span>
+    </div>
+  </div>
+
   <!-- Hero Section -->
   <section
     id="hero"
@@ -255,34 +292,43 @@
     </div>
   </section>
 
-  <!-- About Hotel Section (Text Left, Image Right on Desktop) -->
-  <section id="about" class="py-12 md:py-16 px-4 sm:px-6 lg:px-8 bg-watermark">
-    <div class="max-w-6xl mx-auto">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-        <!-- Left: Text -->
-        <div class="lg:col-span-6 space-y-4 reveal">
-          <p class="text-gold text-xs sm:text-sm font-semibold tracking-[.25em] uppercase">Welcome to Coral Heights</p>
-          <h2 class="font-serif text-3xl md:text-4xl text-teal-950 leading-tight">
-            Where Kerala Heritage Meets Modern Comfort
-          </h2>          
-          <p class="text-gray-600 text-sm sm:text-base leading-relaxed">
-            Nestled in the cultural heart of Ambalapuzha, Alappuzha, Hotel Coral Heights blends timeless Kerala hospitality with thoughtfully appointed modern luxury. Steps away from the revered Sree Krishna Temple and minutes from the tranquil backwaters, every stay is crafted for warmth, safety, and serenity.
-          </p>
-          <p class="text-gray-600 text-sm sm:text-base leading-relaxed">
-            Whether you are visiting for a family pilgrimage, a relaxing backwater escape, or a grand celebration, enjoy spacious rooms, authentic coastal dining at The Pepper Tree, and attentive service around the clock.
-          </p>
-        </div>
+  <!-- About Hotel Section (Full-bleed Right Image with Soft Fade into Cream) -->
+  <section id="about" class="relative overflow-hidden bg-watermark mt-6">
+    <!-- Desktop Right Full-Bleed Image + Left Fade -->
+    <div class="hidden lg:block lg:absolute lg:inset-y-0 lg:right-0 lg:w-[58%] pointer-events-none">
+      <img
+        src="{% static 'images/coral.jpg' %}"
+        alt="Hotel Coral Heights, Ambalapuzha"
+        class="w-full h-full object-cover object-center rounded-none"
+        loading="lazy"
+      />
+      <div class="about-fade-overlay absolute inset-0" aria-hidden="true"></div>
+    </div>
 
-        <!-- Right: Sharp-cornered Image -->
-        <div class="lg:col-span-6 reveal">
-          <img
-            src="{% static 'images/coral.jpg' %}"
-            alt="Hotel Coral Heights, Ambalapuzha"
-            class="w-full aspect-[4/3] object-cover rounded-none"
-            loading="lazy"
-          />
-        </div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 py-10 sm:py-12 lg:py-20">
+      <div class="lg:w-[48%] space-y-4 reveal">
+        <p class="text-gold text-xs sm:text-sm font-semibold tracking-[.25em] uppercase">Welcome to Coral Heights</p>
+        <h2 class="font-serif text-3xl md:text-4xl lg:text-[2.65rem] text-teal-950 leading-tight">
+          Where Kerala Heritage<br class="hidden sm:inline" /> Meets Modern Comfort
+        </h2>
+        <p class="text-gray-700 text-sm sm:text-base leading-relaxed text-justify">
+          Nestled in the cultural heart of Ambalapuzha, Alappuzha, Hotel Coral Heights blends timeless Kerala hospitality with thoughtfully appointed modern luxury. Steps away from the revered Sree Krishna Temple and minutes from the tranquil backwaters, every stay is crafted for warmth, safety, and serenity.
+        </p>
+        <p class="text-gray-700 text-sm sm:text-base leading-relaxed text-justify">
+          Whether you are visiting for a family pilgrimage, a relaxing backwater escape, or a grand celebration, enjoy spacious rooms, authentic coastal dining at The Pepper Tree, and attentive service around the clock.
+        </p>
       </div>
+    </div>
+
+    <!-- Mobile/Tablet Full-Width Image with Soft Top Fade -->
+    <div class="lg:hidden relative">
+      <img
+        src="{% static 'images/coral.jpg' %}"
+        alt="Hotel Coral Heights, Ambalapuzha"
+        class="w-full aspect-[4/3] object-cover rounded-none block"
+        loading="lazy"
+      />
+      <div class="about-fade-top absolute inset-x-0 top-0 h-16 pointer-events-none" aria-hidden="true"></div>
     </div>
   </section>
   
@@ -312,7 +358,7 @@
                   class="w-full h-full object-cover group-hover:scale-105 hover:scale-105 transition-transform duration-700 rounded-none"
                   loading="lazy"
                 />
-                <span class="absolute top-4 left-4 lg:top-5 lg:left-5 bg-teal-950/90 text-gold text-xs sm:text-sm font-semibold px-3.5 py-1.5 backdrop-blur-sm shadow-md tracking-wider border-l-2 border-gold rounded-none">
+                <span class="absolute top-4 left-4 lg:top-5 lg:left-5 bg-teal-950/90 text-white text-xs sm:text-sm font-semibold px-3.5 py-1.5 backdrop-blur-sm shadow-md tracking-wider border-l-2 border-gold rounded-none">
                   From ₹{{ room.base_price_per_night|floatformat:"0" }}/night
                 </span>
               </div>
@@ -444,7 +490,7 @@
           type="button"
           @click="scrollPrev"
           aria-label="Previous attraction"
-          class="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-[#faf7f2]/95 border border-gold/60 text-teal-950 hover:bg-gold hover:text-teal-950 transition-colors flex items-center justify-center cursor-pointer"
+          class="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[#faf7f2]/95 border border-gold/60 text-teal-950 hover:bg-gold transition-colors flex items-center justify-center cursor-pointer shadow-md"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
@@ -453,14 +499,14 @@
 
         <div
           x-ref="track"
-          class="timeline-track flex items-stretch overflow-x-auto px-14"
+          class="timeline-track flex items-stretch overflow-x-auto"
         >
           {% for attraction in attractions %}
             <article class="timeline-h-item flex flex-col reveal-child">
               {% if forloop.counter0|divisibleby:2 %}
-                <!-- Odd item (1st, 3rd, 5th...): Above center line -->
+                <!-- Odd item (1st, 3rd, 5th...): Above road -->
                 <div class="timeline-h-slot px-4 flex flex-col justify-end items-center text-center">
-                  <div class="w-full space-y-2.5 pb-3">
+                  <div class="w-full space-y-2.5 pb-4">
                     {% if attraction.display_image_url %}
                       <img
                         src="{{ attraction.display_image_url }}"
@@ -472,27 +518,23 @@
                     <h3 class="font-serif text-lg text-teal-950 leading-snug">{{ attraction.name }}</h3>
                     <p class="text-gray-600 text-xs leading-relaxed line-clamp-3">{{ attraction.description }}</p>
                   </div>
-                  <span class="w-px h-5 bg-gold/70 block shrink-0" aria-hidden="true"></span>
                 </div>
               {% else %}
                 <div class="timeline-h-slot px-4" aria-hidden="true"></div>
               {% endif %}
 
-              <!-- Continuous Center Gold Line & Location Tag Distance Badge -->
-              <div class="timeline-h-axis relative h-[64px] flex items-center justify-center">
-                <span class="relative z-10 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gold text-teal-950 font-bold text-xs leading-none whitespace-nowrap">
-                  <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                  </svg>
-                  <span>{{ attraction.distance_label }}</span>
-                </span>
+              <!-- Continuous Horizontal Asphalt Road & Milestone Stone -->
+              <div class="timeline-h-axis relative flex items-center justify-center">
+                <div class="milestone-stone">
+                  <div class="milestone-cap"></div>
+                  <div class="milestone-body">{{ attraction.distance_label }}</div>
+                </div>
               </div>
 
               {% if not forloop.counter0|divisibleby:2 %}
-                <!-- Even item (2nd, 4th, 6th...): Below center line -->
+                <!-- Even item (2nd, 4th, 6th...): Below road -->
                 <div class="timeline-h-slot px-4 flex flex-col justify-start items-center text-center">
-                  <span class="w-px h-5 bg-gold/70 block shrink-0" aria-hidden="true"></span>
-                  <div class="w-full space-y-2.5 pt-3">
+                  <div class="w-full space-y-2.5 pt-4">
                     {% if attraction.display_image_url %}
                       <img
                         src="{{ attraction.display_image_url }}"
@@ -516,7 +558,7 @@
           type="button"
           @click="scrollNext"
           aria-label="Next attraction"
-          class="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-[#faf7f2]/95 border border-gold/60 text-teal-950 hover:bg-gold hover:text-teal-950 transition-colors flex items-center justify-center cursor-pointer"
+          class="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-[#faf7f2]/95 border border-gold/60 text-teal-950 hover:bg-gold transition-colors flex items-center justify-center cursor-pointer shadow-md"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
@@ -524,17 +566,15 @@
         </button>
       </div>
 
-      <!-- Mobile (< 768px): Vertical Left-Line Timeline -->
-      <div class="md:hidden timeline-v-list relative space-y-10">
+      <!-- Mobile (< 768px): Vertical Asphalt Road Timeline -->
+      <div class="md:hidden timeline-v-list relative space-y-8 py-2">
         {% for attraction in attractions %}
           <article class="relative flex items-start gap-4 reveal-child">
-            <div class="relative z-10 shrink-0">
-              <span class="w-20 py-1.5 rounded-full bg-gold text-teal-950 font-bold text-[11px] leading-none inline-flex items-center justify-center gap-1 whitespace-nowrap">
-                <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                  <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                </svg>
-                <span>{{ attraction.distance_label }}</span>
-              </span>
+            <div class="relative z-10 w-[68px] shrink-0 flex justify-center pt-6">
+              <div class="milestone-stone milestone-stone--mobile">
+                <div class="milestone-cap"></div>
+                <div class="milestone-body">{{ attraction.distance_label }}</div>
+              </div>
             </div>
             <div class="flex-1 min-w-0 space-y-2.5 pt-0.5">
               {% if attraction.display_image_url %}
@@ -854,7 +894,4 @@
       ></iframe>
     </div>
   </section>
-
-  <!-- Hotel Assistant Chatbot (Homepage Only) -->
-  {% include 'content/_chatbot.html' %}
 {% endblock %}

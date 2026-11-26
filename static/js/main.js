@@ -24,6 +24,79 @@ document.addEventListener('alpine:init', () => {
     return str;
   }
 
+  // Mobile-only fullscreen portrait intro video overlay
+  Alpine.data('mobileIntroVideo', () => ({
+    fading: false,
+    dismissed: false,
+
+    init() {
+      const isMobile = window.matchMedia('(max-width: 767px)').matches;
+      if (!isMobile) {
+        this.dismissImmediate();
+        return;
+      }
+
+      // Skip re-showing only when navigating back to Home from another internal page
+      const navEntry = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+      const isReload = navEntry && navEntry.type === 'reload';
+      const isInternalNav =
+        !isReload &&
+        document.referrer &&
+        document.referrer.startsWith(window.location.origin);
+
+      if (isInternalNav) {
+        this.dismissImmediate();
+        return;
+      }
+
+      document.body.classList.add('mobile-intro-lock');
+
+      const video = this.$refs.introVideo;
+      if (!video) return;
+
+      video.muted = true;
+
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const saveData = !!(navigator.connection && navigator.connection.saveData);
+      if (prefersReducedMotion || saveData) {
+        video.pause();
+        return;
+      }
+
+      const playPromise = video.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {});
+      }
+    },
+
+    get overlayClasses() {
+      if (this.dismissed) return 'is-dismissed';
+      if (this.fading) return 'is-fading';
+      return '';
+    },
+
+    dismissImmediate() {
+      this.dismissed = true;
+      document.body.classList.remove('mobile-intro-lock');
+      if (this.$refs.introVideo) {
+        this.$refs.introVideo.pause();
+      }
+    },
+
+    dismiss() {
+      if (this.fading || this.dismissed) return;
+      this.fading = true;
+      document.body.classList.remove('mobile-intro-lock');
+
+      window.setTimeout(() => {
+        this.dismissed = true;
+        if (this.$refs.introVideo) {
+          this.$refs.introVideo.pause();
+        }
+      }, 350);
+    }
+  }));
+
   // Hero video: ambient autoplay (muted), respect reduced-motion & data-saver, pause on scroll-away / tab-hidden
   Alpine.data('heroVideo', () => ({
     _observer: null,
@@ -1533,40 +1606,4 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.reveal-child').forEach(el => {
     childObserver.observe(el);
   });
-  
-  const parallaxBgElements = document.querySelectorAll('.parallax-bg');
-  let ticking = false;
-
-  function updateParallax() {
-    const scrollY = window.pageYOffset || document.documentElement.scrollTop;
-
-    parallaxBgElements.forEach(el => {
-      const container = el.closest('.parallax-window');
-      if (!container) return;
-
-      const rect = container.getBoundingClientRect();
-      const windowHeight = window.innerHeight;
-
-      // Check if container is in viewport
-      if (rect.bottom >= 0 && rect.top <= windowHeight) {
-        const speed = parseFloat(el.getAttribute('data-parallax-speed')) || 0.3;
-        // Calculate relative offset from top of section
-        const elementOffset = rect.top;
-        const translateY = elementOffset * speed;
-        el.style.transform = `translate3d(0, ${translateY}px, 0)`;
-      }
-    });
-
-    ticking = false;
-  }
-
-  window.addEventListener('scroll', () => {
-    if (!ticking) {
-      window.requestAnimationFrame(updateParallax);
-      ticking = true;
-    }
-  }, { passive: true });
-
-  // Initial parallax calculation
-  updateParallax();
 });

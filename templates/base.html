@@ -88,7 +88,7 @@
 
         <!-- Mobile hamburger button -->
         <button
-          @click="toggleMobile"
+          @click.stop="toggleMobile"
           class="lg:hidden p-2 rounded-lg nav-hamburger text-white hover:opacity-80 transition-opacity focus:outline-none"
           aria-label="Toggle navigation menu"
           :aria-expanded="mobileOpen"
@@ -101,6 +101,7 @@
       <!-- Mobile menu dropdown -->
       <div
         x-show="mobileOpen"
+        @click.outside="closeMobile"
         x-transition:enter="transition ease-out duration-200"
         x-transition:enter-start="opacity-0 -translate-y-2"
         x-transition:enter-end="opacity-100 translate-y-0"
@@ -209,6 +210,9 @@
     </div>
   </footer>
   
+  <!-- Hotel Assistant Chatbot -->
+  {% include 'content/_chatbot.html' %}
+
   <a
     href="{{ contact_info.whatsapp_url }}"
     target="_blank"

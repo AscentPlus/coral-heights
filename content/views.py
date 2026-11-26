@@ -13,7 +13,6 @@ def home_view(request):
     restaurant_info = RestaurantInfo.objects.first()
     contact_info = ContactInformation.objects.first()
     gallery_images = GalleryImage.objects.filter(show_on_home=True)[:HOME_GALLERY_MAX]
-    has_gallery = GalleryImage.objects.exists()
 
     enquiry_errors = request.session.pop('enquiry_errors', None)
     enquiry_data = request.session.pop('enquiry_data', None)
@@ -26,7 +25,6 @@ def home_view(request):
         'restaurant_info': restaurant_info,
         'contact_info': contact_info,
         'gallery_images': gallery_images,
-        'has_gallery': has_gallery,
         'enquiry_errors': enquiry_errors,
         'enquiry_data': enquiry_data or {},
     }
