@@ -36,17 +36,27 @@ document.addEventListener('alpine:init', () => {
         return;
       }
 
-      // Skip re-showing only when navigating back to Home from another internal page
-      const navEntry = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
-      const isReload = navEntry && navEntry.type === 'reload';
+      // Show only once per browser session (skip on reloads and internal navigation)
+      let alreadySeen = false;
+      try {
+        alreadySeen = window.sessionStorage.getItem('mobileIntroSeen') === '1';
+      } catch (e) {
+        alreadySeen = false;
+      }
+
       const isInternalNav =
-        !isReload &&
         document.referrer &&
         document.referrer.startsWith(window.location.origin);
 
-      if (isInternalNav) {
+      if (alreadySeen || isInternalNav) {
         this.dismissImmediate();
         return;
+      }
+
+      try {
+        window.sessionStorage.setItem('mobileIntroSeen', '1');
+      } catch (e) {
+        // Ignore storage errors in restricted browsing modes
       }
 
       document.body.classList.add('mobile-intro-lock');
