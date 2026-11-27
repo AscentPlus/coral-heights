@@ -733,4 +733,30 @@ class ChatbotAuditRegressionTests(TestCase):
         self.assertIn("[REDACTED_EMAIL]", logged.text)
         self.assertIn("[REDACTED_CARD]", logged.text)
 
+    def test_single_keyword_faq_matching(self):
+        """Explicit single-keyword triggers on ChatFAQ must match even when phrased differently."""
+        ChatFAQ.objects.create(
+            question="Does the hotel have a bar?",
+            keywords="bar, alcohol, liquor",
+            answer="No, there is no bar on the premises.",
+            is_active=True,
+            display_order=2,
+        )
+        ChatFAQ.objects.create(
+            question="Is swimming pool available?",
+            keywords="swimming, pool",
+            answer="No, swimming pool facilities are not available at our hotel.",
+            is_active=True,
+            display_order=3,
+        )
+
+        for query in ("is liquor available", "is bar available", "do you serve beer"):
+            res = answer(query)
+            self.assertTrue(res["matched"], f"Expected match for '{query}'")
+            self.assertIn("no bar on the premises", res["answer"].lower())
+
+        res_pool = answer("is pool available")
+        self.assertTrue(res_pool["matched"])
+        self.assertIn("swimming pool facilities are not available", res_pool["answer"].lower())
+
 

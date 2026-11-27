@@ -301,7 +301,9 @@ def _match_chat_faqs(normalized_query: str) -> Optional[Tuple[float, ChatFAQ]]:
         similarity = difflib.SequenceMatcher(None, normalized_query, faq_q_norm).ratio()
 
         kw_hits = 0
+        explicit_exact_hits = 0
         raw_keywords = set()
+        explicit_keywords = set()
         multi_phrases = []
 
         if faq.keywords:
@@ -314,6 +316,7 @@ def _match_chat_faqs(normalized_query: str) -> Optional[Tuple[float, ChatFAQ]]:
                 for w in seg_norm.split():
                     if len(w) >= 3 and w not in FAQ_STOP_WORDS:
                         raw_keywords.add(w)
+                        explicit_keywords.add(w)
 
         for w in faq_q_norm.split():
             if len(w) >= 4 and w not in FAQ_STOP_WORDS:
@@ -327,16 +330,20 @@ def _match_chat_faqs(normalized_query: str) -> Optional[Tuple[float, ChatFAQ]]:
                         multi_phrases.append(syn)
                     elif syn not in FAQ_STOP_WORDS:
                         raw_keywords.add(syn)
+                        explicit_keywords.add(syn)
 
         for phrase in multi_phrases:
             if f" {phrase} " in query_padded:
                 kw_hits += 2
+                explicit_exact_hits += 1
 
         matched_tokens = set()
         for kw in raw_keywords:
             if f" {kw} " in query_padded:
                 kw_hits += 1
                 matched_tokens.add(kw)
+                if kw in explicit_keywords:
+                    explicit_exact_hits += 1
             elif len(kw) >= 6:
                 unmatched = [t for t in query_tokens if t not in matched_tokens and len(t) >= 6]
                 close = difflib.get_close_matches(
@@ -351,6 +358,10 @@ def _match_chat_faqs(normalized_query: str) -> Optional[Tuple[float, ChatFAQ]]:
         if kw_hits >= 2:
             score = (FAQ_KEYWORD_MATCH_WEIGHT * kw_score) + (FAQ_SIMILARITY_WEIGHT * similarity)
             score = max(score, 0.70)
+        elif explicit_exact_hits >= 1:
+            # Explicit staff-configured keyword or synonym matched directly
+            score = (FAQ_KEYWORD_MATCH_WEIGHT * kw_score) + (FAQ_SIMILARITY_WEIGHT * similarity)
+            score = max(score, 0.62)
         elif kw_hits == 1:
             # Require question similarity >= 0.38 to prevent false single-word matches in unrelated queries
             if similarity >= 0.38:
